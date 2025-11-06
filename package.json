@@ -2,11 +2,15 @@
   "name": "mgrep",
   "version": "1.0.0",
   "main": "index.js",
+  "bin": {
+    "mgrep": "dist/index.js"
+  },
   "scripts": {
     "build": "npx tsc",
     "dev": "npx tsc && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "keywords": [],
   "author": "",
