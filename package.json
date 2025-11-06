@@ -19,7 +19,8 @@
   "description": "",
   "dependencies": {
     "@mixedbread/sdk": "^0.38.0",
-    "commander": "^14.0.2"
+    "commander": "^14.0.2",
+    "ora": "^5.4.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",

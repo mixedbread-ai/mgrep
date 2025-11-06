@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Mixedbread } from "@mixedbread/sdk";
 import { isIgnoredByGit, getGitRepoFiles, computeBufferHash } from "./utils";
+import ora from "ora";
 
 async function listStoreFileHashes(
   client: Mixedbread,
@@ -69,20 +70,32 @@ async function initialSync(
   client: Mixedbread,
   store: string,
   repoRoot: string,
+  onProgress?: (info: {
+    processed: number;
+    uploaded: number;
+    total: number;
+    filePath?: string;
+  }) => void,
 ): Promise<void> {
   const storeHashes = await listStoreFileHashes(client, store);
   const repoFiles = filterRepoFiles(getGitRepoFiles(repoRoot), repoRoot);
+  const total = repoFiles.length;
+  let processed = 0;
+  let uploaded = 0;
   for (const filePath of repoFiles) {
     try {
       const buffer = fs.readFileSync(filePath);
       const hash = computeBufferHash(buffer);
       const existingHash = storeHashes.get(filePath);
+      processed += 1;
       if (!existingHash || existingHash !== hash) {
         await uploadFile(client, store, filePath, path.basename(filePath));
-        console.log(`Uploaded initial ${filePath}`);
+        uploaded += 1;
       }
+      onProgress?.({ processed, uploaded, total, filePath });
     } catch (err) {
       console.error("Failed to process initial file:", filePath, err);
+      onProgress?.({ processed, uploaded, total, filePath });
     }
   }
 }
@@ -143,10 +156,29 @@ program
     });
 
     const watchRoot = process.cwd();
-    console.log("Watching for file changes in", watchRoot);
     try {
-      await initialSync(mixedbread, options.store, watchRoot);
+      const spinner = ora({ text: "Uploading initial files..." }).start();
+      let lastUploaded = 0;
+      let lastTotal = 0;
+      try {
+        await initialSync(mixedbread, options.store, watchRoot, (info) => {
+          lastUploaded = info.uploaded;
+          lastTotal = info.total;
+          const rel =
+            info.filePath && info.filePath.startsWith(watchRoot)
+              ? path.relative(watchRoot, info.filePath)
+              : info.filePath ?? "";
+          spinner.text = `Uploading initial files (${lastUploaded}/${lastTotal}) ${rel}`;
+        });
+        spinner.succeed(
+          `Initial upload complete (${lastUploaded}/${lastTotal})`,
+        );
+      } catch (e) {
+        spinner.fail("Initial upload failed");
+        throw e;
+      }
 
+      console.log("Watching for file changes in", watchRoot);
       fs.watch(watchRoot, { recursive: true }, (eventType, rawFilename) => {
         const filename = rawFilename?.toString();
         if (!filename) {
