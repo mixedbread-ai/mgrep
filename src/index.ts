@@ -7,6 +7,7 @@ import { isIgnoredByGit, getGitRepoFiles, computeBufferHash } from "./utils";
 import ora from "ora";
 import * as os from "os";
 import pLimit from "p-limit";
+import { login } from "./login";
 
 async function listStoreFileHashes(
   client: Mixedbread,
@@ -248,5 +249,7 @@ program
       process.exitCode = 1;
     }
   });
+
+program.addCommand(login);
 
 program.parse();

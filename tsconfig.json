@@ -5,6 +5,10 @@
     "esModuleInterop": true,
     "module": "CommonJS",
     "target": "ES6",
-    "rootDir": "src"
+    "rootDir": "src",
+    "incremental": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
   }
 }
