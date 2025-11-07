@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npx tsc",
     "dev": "npx tsc && node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "keywords": [],
@@ -14,11 +14,13 @@
   "description": "",
   "dependencies": {
     "@mixedbread/sdk": "^0.38.0",
+    "chokidar": "^3.6.0",
     "commander": "^14.0.2"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
     "prettier": "^3.6.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.7"
   }
 }

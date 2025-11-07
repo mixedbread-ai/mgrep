@@ -6,5 +6,7 @@
     "module": "CommonJS",
     "target": "ES6",
     "rootDir": "src"
-  }
+  },
+  "exclude": ["node_modules", "**/*.test.ts"],
+  "include": ["src"]
 }
