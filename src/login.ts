@@ -9,8 +9,11 @@ import os from "os";
 import path from "path";
 import yoctoSpinner from "yocto-spinner";
 import * as z from "zod";
+import { isDevelopment } from "./utils";
 
-const PLATFORM_URL = "http://localhost:3001";
+const PLATFORM_URL = isDevelopment()
+  ? "http://localhost:3001"
+  : "https://www.platform.mixedbread.com";
 const CLIENT_ID = "mgrep";
 const CONFIG_DIR = path.join(os.homedir(), ".mgrep");
 const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
@@ -26,13 +29,20 @@ export async function loginAction(opts: any) {
   const serverUrl = options.serverUrl || PLATFORM_URL;
   const clientId = options.clientId || CLIENT_ID;
 
-  intro(chalk.bold("🔐 mgrep Login"));
+  intro(chalk.bold("🔐 Mixedbread Login"));
 
   // Check if already logged in
   const existingToken = await getStoredToken();
-  if (existingToken) {
-    outro(chalk.blue("✅ You're already logged in"));
-    process.exit(0);
+  if (existingToken && isDevelopment()) {
+    const shouldReauth = await confirm({
+      message: "You're already logged in. Do you want to log in again?",
+      initialValue: false,
+    });
+
+    if (isCancel(shouldReauth) || !shouldReauth) {
+      cancel("Login cancelled");
+      process.exit(0);
+    }
   }
 
   // Create the auth client
@@ -73,7 +83,10 @@ export async function loginAction(opts: any) {
     console.log("");
     console.log(chalk.cyan("📱 Device Authorization Required"));
     console.log("");
-    console.log(`Please visit: ${chalk.underline.blue(verification_uri)}`);
+    console.log("Login to your Mixedbread platform account, then:");
+    console.log(
+      `Please visit: ${chalk.underline.blue(`${verification_uri}?user_code=${user_code}`)}`,
+    );
     console.log(`Enter code: ${chalk.bold.green(user_code)}`);
     console.log("");
 
@@ -123,9 +136,7 @@ export async function loginAction(opts: any) {
     }
   } catch (err) {
     spinner.stop();
-    console.error(
-      `Login failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-    );
+    console.error(`${err instanceof Error ? err.message : "Unknown error"}`);
     process.exit(1);
   }
 }
@@ -140,7 +151,7 @@ async function pollForToken(
   const spinner = yoctoSpinner({ text: "", color: "cyan" });
   let dots = 0;
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const poll = async () => {
       // Update spinner text with animated dots
       dots = (dots + 1) % 4;
@@ -178,24 +189,26 @@ async function pollForToken(
               break;
             case "access_denied":
               spinner.stop();
-              console.error("Access was denied by the user");
-              process.exit(1);
+              reject(new Error("Access was denied by the user"));
+              return;
             case "expired_token":
               spinner.stop();
-              console.error("The device code has expired. Please try again.");
-              process.exit(1);
+              reject(
+                new Error("The device code has expired. Please try again."),
+              );
+              return;
             default:
               spinner.stop();
-              console.error(`Error: ${error.error_description}`);
-              process.exit(1);
+              reject(new Error(error.error_description || "Unknown error"));
+              return;
           }
         }
       } catch (err) {
         spinner.stop();
-        console.error(
-          `Network error: ${err instanceof Error ? err.message : "Unknown error"}`,
-        );
-        process.exit(1);
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error";
+        reject(new Error(`Network error: ${errorMessage}`));
+        return;
       }
 
       setTimeout(poll, pollingInterval * 1000);
