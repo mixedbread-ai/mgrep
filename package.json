@@ -1,6 +1,6 @@
 {
   "name": "mgrep",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Mixedbread semantic grep CLI",
   "license": "MIT",
   "author": "Mixedbread",
@@ -43,7 +43,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mixedbread-ai/mgrep.git"
+    "url": "git+https://github.com/mixedbread-ai/mgrep.git"
   },
   "bugs": {
     "url": "https://github.com/mixedbread-ai/mgrep/issues"
