@@ -6,14 +6,14 @@ A command line tool for searching using Mixedbread.
 
 ```bash
 # Use mgrep ad-hoc without installing
-npx @mixedbread/grep search "where do we handle auth?"
-bunx @mixedbread/grep watch
+npx mgrep search "where do we handle auth?"
+bunx mgrep watch
 
 # Add to a project (installs the mgrep binary locally)
-pnpm add -D @mixedbread/grep
+pnpm add -D mgrep
 
 # Install globally so the `mgrep` command is always on your PATH
-npm install -g @mixedbread/grep
+npm install -g mgrep
 ```
 
 ## Usage
@@ -22,11 +22,20 @@ npm install -g @mixedbread/grep
 # Search the current repository
 mgrep <pattern>
 
+# Upload a snapshot and exit
+mgrep sync
+
 # Keep Mixedbread up to date as you edit
 mgrep watch
 
 # Forget cached credentials
 mgrep logout
+
+# Inspect local configuration / credentials
+mgrep status
+
+# Persist defaults (store, authUrl, telemetry, etc.)
+mgrep config set store my-default-store
 
 # Provide explicit credentials if you don't want the browser flow
 mgrep --api-key <api-key> --store <store-id> <pattern>
@@ -44,6 +53,12 @@ mgrep --api-key <api-key> --store <store-id> <pattern>
 ## File sync
 
 - `mgrep watch` now uses a cross-platform watcher and tracks additions, edits, and deletions. It uploads files using repo-relative paths, so identical filenames in different folders no longer collide remotely.
+
+## Configuration
+
+- Config and credentials live in `~/.config/mgrep/` (override with `--config` or `MGREP_CONFIG_DIR`).
+- Use `mgrep config path` to see the file location, `mgrep config get <key>` to read a value, and `mgrep config set <key> <value>` to persist defaults (`store`, `authUrl`, `telemetry`, `logLevel`).
+- `mgrep status` summarizes the current config, credential cache, and default store.
 
 ## Development
 

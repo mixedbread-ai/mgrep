@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { program } from "commander";
+import { program, Command } from "commander";
 import * as fs from "fs";
 import * as path from "path";
 import chokidar from "chokidar";
@@ -11,13 +11,26 @@ import {
   getGitRoot,
   getRepoRelativePath,
 } from "./utils";
-import { CredentialsStore, resolveCredentials } from "./auth";
+import { CredentialsStore, resolveCredentials, type CredentialResolutionResult } from "./auth";
+import { loadConfig, saveConfig, updateConfig, getConfigPath, type MgrepConfig } from "./config";
+
+const KNOWN_COMMANDS = new Set([
+  "search",
+  "sync",
+  "status",
+  "watch",
+  "logout",
+  "config",
+  "stores",
+]);
 
 type GlobalCLIOptions = {
   apiKey?: string;
   store?: string;
   authUrl?: string;
   nonInteractive?: boolean;
+  config?: string;
+  verbose?: boolean;
 };
 
 type StoreFileCacheEntry = {
@@ -26,6 +39,73 @@ type StoreFileCacheEntry = {
 };
 
 type StoreFileCache = Map<string, StoreFileCacheEntry>;
+
+type ClientContext = {
+  client: Mixedbread;
+  credentials: CredentialResolutionResult;
+  storeIdentifier: string;
+  config: MgrepConfig;
+  configDir?: string;
+};
+
+function getConfigContext(options: GlobalCLIOptions): { config: MgrepConfig; configDir?: string } {
+  const configDir = options.config;
+  const config = loadConfig({ configDir });
+  return { config, configDir };
+}
+
+function telemetryEnabled(config: MgrepConfig): boolean {
+  if (process.env.MGREP_DISABLE_TELEMETRY?.toLowerCase() === "true") {
+    return false;
+  }
+  return config.telemetry !== false;
+}
+
+async function createClientContext(
+  opts: GlobalCLIOptions,
+  ensureStoreCreation = true,
+): Promise<ClientContext> {
+  const { config, configDir } = getConfigContext(opts);
+  const storePreference = opts.store ?? config.store;
+  const authUrl = opts.authUrl ?? config.authUrl;
+  const credentialsStore = new CredentialsStore(configDir);
+  const credentials = await resolveCredentials(
+    {
+      cliApiKey: opts.apiKey,
+      cliStore: storePreference,
+      authUrl,
+      nonInteractive: opts.nonInteractive,
+      configDir,
+    },
+    { credentialsStore },
+  );
+
+  const client = new Mixedbread({ apiKey: credentials.apiKey });
+  const storeIdentifier = ensureStoreCreation
+    ? await ensureStore(client, opts.store ?? config.store ?? credentials.store)
+    : opts.store ?? config.store ?? credentials.store ?? "mgrep";
+
+  return { client, credentials, storeIdentifier, config, configDir };
+}
+
+function mergeConfigValue(config: MgrepConfig, key: string, value: string): MgrepConfig {
+  switch (key) {
+    case "store":
+      return { ...config, store: value };
+    case "authUrl":
+      return { ...config, authUrl: value || undefined };
+    case "telemetry":
+      return { ...config, telemetry: !isFalseLike(value) };
+    case "logLevel":
+      return { ...config, logLevel: value === "silent" ? "silent" : "info" };
+    default:
+      throw new Error(`Unknown config key: ${key}`);
+  }
+}
+
+function isFalseLike(value: string): boolean {
+  return ["0", "false", "no", "off"].includes(value.toLowerCase());
+}
 
 async function listStoreFileInfos(client: Mixedbread, store: string): Promise<StoreFileCache> {
   const byExternalId: StoreFileCache = new Map();
@@ -127,31 +207,21 @@ program
   .option("--api-key <string>", "The API key to use")
   .option("--store <string>", "The store to use")
   .option("--auth-url <string>", "Override the Mixedbread auth URL")
-  .option("--non-interactive", "Disable browser-based login and fail if no credentials are available");
+  .option("--non-interactive", "Disable browser-based login and fail if no credentials are available")
+  .option("--config <path>", "Directory that stores mgrep config and credentials")
+  .option("--verbose", "Enable verbose logging output");
 
 program
   .command("search", { isDefault: true })
   .description("File pattern searcher")
   .argument("<pattern>", "The pattern to search for")
   .action(async (pattern, _options, cmd) => {
-    const options: GlobalCLIOptions = cmd.optsWithGlobals();
+    const options = getOptions(cmd);
+    const ctx = await createClientContext(options);
 
-    const credentials = await resolveCredentials({
-      cliApiKey: options.apiKey,
-      cliStore: options.store,
-      authUrl: options.authUrl,
-      nonInteractive: options.nonInteractive,
-    });
-
-    const mixedbread = new Mixedbread({
-      apiKey: credentials.apiKey,
-    });
-
-    const storeIdentifier = await ensureStore(mixedbread, credentials.store);
-
-    const results = await mixedbread.stores.search({
+    const results = await ctx.client.stores.search({
       query: pattern,
-      store_identifiers: [storeIdentifier],
+      store_identifiers: [ctx.storeIdentifier],
     });
 
     console.log(
@@ -169,34 +239,58 @@ program
   });
 
 program
+  .command("sync")
+  .description("Upload a repository snapshot once and exit")
+  .action(async (_args, cmd) => {
+    const options = getOptions(cmd);
+    const ctx = await createClientContext(options);
+    const repoRoot = getGitRoot(process.cwd()) ?? process.cwd();
+    console.log(`Syncing ${repoRoot} to store ${ctx.storeIdentifier}`);
+    await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
+    console.log("Sync complete.");
+  });
+
+program
+  .command("status")
+  .description("Show configuration and credential status")
+  .action(async (_args, cmd) => {
+    const options = getOptions(cmd);
+    const { config, configDir } = getConfigContext(options);
+    const credentialsStore = new CredentialsStore(configDir);
+    const cached = credentialsStore.read();
+
+    console.log(`Config file: ${getConfigPath(configDir)}`);
+    console.log(`Default store: ${config.store ?? "mgrep"}`);
+    console.log(`Auth URL override: ${config.authUrl ?? "<default>"}`);
+    console.log(`Telemetry: ${telemetryEnabled(config) ? "enabled" : "disabled"}`);
+    console.log(`Credentials: ${cached ? "cached" : "missing"}`);
+    if (cached) {
+      console.log(`  Cached store: ${cached.store ?? "unknown"}`);
+      console.log(`  Cached at: ${cached.createdAt}`);
+    }
+  });
+
+program
   .command("watch")
   .description("Watch for file changes")
   .action(async (_args, cmd) => {
-    const options: GlobalCLIOptions = cmd.optsWithGlobals();
-
-    const credentials = await resolveCredentials({
-      cliApiKey: options.apiKey,
-      cliStore: options.store,
-      authUrl: options.authUrl,
-      nonInteractive: options.nonInteractive,
-    });
-
-    const mixedbread = new Mixedbread({
-      apiKey: credentials.apiKey,
-    });
-
-    const storeIdentifier = await ensureStore(mixedbread, credentials.store);
+    const options = getOptions(cmd);
+    const ctx = await createClientContext(options);
 
     const watchRoot = process.cwd();
     const repoRoot = getGitRoot(watchRoot) ?? watchRoot;
     console.log("Watching for file changes in", repoRoot);
+    if (!telemetryEnabled(ctx.config)) {
+      console.log("Telemetry disabled (no usage data collected).");
+    }
     try {
-      const remoteFiles = await initialSync(mixedbread, storeIdentifier, repoRoot);
+      const remoteFiles = await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
       startWatcher({
-        client: mixedbread,
-        store: storeIdentifier,
+        client: ctx.client,
+        store: ctx.storeIdentifier,
         repoRoot,
         cache: remoteFiles,
+        verbose: options.verbose ?? ctx.config.logLevel !== "silent",
       });
     } catch (err) {
       console.error("Failed to start watcher:", err);
@@ -213,15 +307,92 @@ program
     console.log("Cleared cached mgrep credentials.");
   });
 
+const configCommand = program.command("config").description("Inspect or update CLI configuration");
+
+configCommand
+  .command("path")
+  .description("Show the path to the config file")
+  .action((cmd) => {
+    const options = getOptions(cmd);
+    console.log(getConfigPath(options.config));
+  });
+
+configCommand
+  .command("get <key>")
+  .description("Show a config value (store, authUrl, telemetry, logLevel)")
+  .action((key, _args, cmd) => {
+    const options = getOptions(cmd);
+    const { config } = getConfigContext(options);
+    const value = (config as Record<string, unknown>)[key];
+    if (value === undefined) {
+      console.log("<undefined>");
+      return;
+    }
+    console.log(value);
+  });
+
+configCommand
+  .command("set <key> <value>")
+  .description("Persist a configuration value")
+  .action((key, value, cmd) => {
+    const options = getOptions(cmd);
+    try {
+      const next = updateConfig((current) => mergeConfigValue(current, key, value), {
+        configDir: options.config,
+      });
+      console.log(`Updated ${key}.`);
+      if (key === "store") {
+        console.log(`Default store is now ${next.store}`);
+      }
+    } catch (err) {
+      console.error((err as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+const storesCommand = program.command("stores").description("Manage Mixedbread stores");
+
+storesCommand
+  .command("list")
+  .option("--limit <number>", "Number of stores to display", (value) => Number.parseInt(value, 10), 10)
+  .action(async (_args, cmd) => {
+    const options = getOptions(cmd);
+    const ctx = await createClientContext(options, false);
+    let printed = 0;
+    let cursor: string | undefined;
+    const limit: number = cmd.opts().limit;
+    while (printed < limit) {
+      const pageSize = Math.min(100, limit - printed);
+      const page = await ctx.client.stores.list({ limit: pageSize, after: cursor });
+      for (const store of page.data) {
+        console.log(`${store.name ?? store.id}  (${store.id})`);
+        printed += 1;
+        if (printed >= limit) break;
+      }
+      if (!page.pagination?.has_more) {
+        break;
+      }
+      cursor = page.pagination.last_cursor ?? undefined;
+    }
+    if (printed === 0) {
+      console.log("No stores found for this account.");
+    }
+  });
+
+injectImplicitSearchCommand();
 program.parse();
 
-async function ensureStore(client: Mixedbread, storePreference: string | undefined): Promise<string> {
+async function ensureStore(
+  client: Mixedbread,
+  storePreference: string | undefined,
+  options?: { allowCreate?: boolean },
+): Promise<string> {
   const target = storePreference || "mgrep";
   try {
     const store = await client.stores.retrieve(target);
     return store.id ?? store.name ?? target;
   } catch (err) {
-    if (!isNotFoundError(err)) {
+    if (!isNotFoundError(err) || options?.allowCreate === false) {
       throw err;
     }
     console.log(`Store "${target}" not found. Creating a new store...`);
@@ -249,11 +420,13 @@ function startWatcher({
   store,
   repoRoot,
   cache,
+  verbose,
 }: {
   client: Mixedbread;
   store: string;
   repoRoot: string;
   cache: StoreFileCache;
+  verbose: boolean;
 }): void {
   const watcher = chokidar.watch(repoRoot, {
     persistent: true,
@@ -266,14 +439,46 @@ function startWatcher({
     ignored: (targetPath: string) => isIgnoredPath(targetPath, repoRoot),
   });
 
-  const syncFile = async (filePath: string) => {
+  const pendingCounts: Record<string, number> = { add: 0, change: 0, unlink: 0 };
+  let flushTimer: NodeJS.Timeout | null = null;
+
+  function scheduleFlush(): void {
+    if (verbose) {
+      return;
+    }
+    if (flushTimer) {
+      return;
+    }
+    flushTimer = setTimeout(() => {
+      const summary = Object.entries(pendingCounts)
+        .filter(([, count]) => count > 0)
+        .map(([evt, count]) => `${evt} ${count}`)
+        .join(", ");
+      if (summary) {
+        console.log(`Synced changes (${summary})`);
+      }
+      pendingCounts.add = pendingCounts.change = pendingCounts.unlink = 0;
+      flushTimer = null;
+    }, 500);
+  }
+
+  const record = (event: "add" | "change" | "unlink", filePath: string) => {
+    pendingCounts[event] += 1;
+    if (verbose) {
+      console.log(`${event}: ${filePath}`);
+    } else {
+      scheduleFlush();
+    }
+  };
+
+  const syncFile = async (filePath: string, event: "add" | "change") => {
     const repoRelative = getRepoRelativePath(filePath, repoRoot);
     if (repoRelative === null) {
       return;
     }
     try {
       await uploadFile(client, store, filePath, repoRelative, cache);
-      console.log(`Synced ${repoRelative}`);
+      record(event, repoRelative);
     } catch (err) {
       console.error("Failed to upload changed file:", repoRelative, err);
     }
@@ -291,15 +496,19 @@ function startWatcher({
     try {
       await client.stores.files.delete(entry.id, { store_identifier: store });
       cache.delete(repoRelative);
-      console.log(`Deleted remote ${repoRelative}`);
+      record("unlink", repoRelative);
     } catch (err) {
       console.error("Failed to delete remote file:", repoRelative, err);
     }
   };
 
   watcher
-    .on("add", syncFile)
-    .on("change", syncFile)
+    .on("add", (filePath) => {
+      void syncFile(filePath, "add");
+    })
+    .on("change", (filePath) => {
+      void syncFile(filePath, "change");
+    })
     .on("unlink", deleteFile)
     .on("error", (err) => {
       console.error("Watcher error:", err);
@@ -319,4 +528,24 @@ function isIgnoredPath(targetPath: string, repoRoot: string): boolean {
     // ignore
   }
   return isIgnoredByGit(targetPath, repoRoot);
+}
+
+function injectImplicitSearchCommand(): void {
+  const argv = process.argv.slice(2);
+  if (argv.length === 0) {
+    return;
+  }
+  const first = argv[0];
+  if (first.startsWith("-")) {
+    return;
+  }
+  if (KNOWN_COMMANDS.has(first)) {
+    return;
+  }
+  process.argv.splice(2, 0, "search");
+}
+
+function getOptions(cmd?: Command): GlobalCLIOptions {
+  const fn = cmd?.optsWithGlobals ?? program.optsWithGlobals.bind(program);
+  return fn();
 }
