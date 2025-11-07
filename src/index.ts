@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { program } from "commander";
+import type { Command } from "commander";
 import * as fs from "fs";
 import * as path from "path";
 import chokidar from "chokidar";
@@ -204,9 +205,10 @@ program
     0.4,
   )
   .option("--json", "Print JSON output instead of human-friendly text")
-  .action(async function (pattern: string, cmdOptions?: SearchCommandOptions) {
+  .action(async function (this: Command, pattern: string) {
     const options = getOptions();
     const ctx = await createClientContext(options, false);
+    const cmdOptions = this.opts<SearchCommandOptions>();
     const searchOptions: SearchCommandOptions = {
       fuzzy: true,
       fuzzyThreshold: 0.4,
@@ -279,9 +281,10 @@ program
   .command("sync")
   .description("Upload a repository snapshot once and exit")
   .option("--watch", "Continue watching after the initial sync")
-  .action(async function (cmdOptions: { watch?: boolean } = {}) {
+  .action(async function (this: Command) {
     const options = getOptions();
     const ctx = await createClientContext(options);
+    const cmdOptions = this.opts<{ watch?: boolean }>();
     const repoRoot = getGitRoot(process.cwd()) ?? process.cwd();
     console.log(`Syncing ${repoRoot} to store ${ctx.storeIdentifier}`);
     const cache = await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
