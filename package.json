@@ -1,32 +1,54 @@
 {
   "name": "mgrep",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "1.3.0",
+  "description": "Mixedbread semantic grep CLI",
+  "license": "MIT",
+  "author": "Mixedbread",
+  "type": "commonjs",
+  "main": "dist/index.js",
   "bin": {
     "mgrep": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mixedbread",
+    "cli",
+    "search",
+    "semantic",
+    "grep"
+  ],
   "scripts": {
-    "build": "npx tsc",
-    "dev": "npx tsc && node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "dev": "tsc && node dist/index.js",
+    "test": "vitest run",
     "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "prepare": "husky"
+    "prepare": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@mixedbread/sdk": "^0.38.0",
+    "chokidar": "^3.6.0",
     "commander": "^14.0.2",
-    "ora": "^5.4.1",
-    "p-limit": "^3.1.0"
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
-    "husky": "^9.1.7",
+    "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
-    "typescript": "^5.9.3"
-  }
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.7"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mixedbread-ai/mgrep.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mixedbread-ai/mgrep/issues"
+  },
+  "homepage": "https://github.com/mixedbread-ai/mgrep#readme"
 }
