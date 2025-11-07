@@ -3,6 +3,32 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 
+const FALLBACK_IGNORED_DIRECTORIES = new Set([
+  ".git",
+  ".hg",
+  ".svn",
+  ".next",
+  ".nuxt",
+  ".turbo",
+  ".svelte-kit",
+  ".cache",
+  ".parcel-cache",
+  ".idea",
+  ".vscode",
+  ".venv",
+  ".tox",
+  ".mypy_cache",
+  "__pycache__",
+  "node_modules",
+  "dist",
+  "build",
+  "coverage",
+  "venv",
+  "tmp",
+]);
+
+const FALLBACK_IGNORED_FILES = new Set([".DS_Store", "Thumbs.db"]);
+
 export function computeBufferHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -81,7 +107,7 @@ export function toPosixPath(p: string): string {
   return p.replace(/\\/g, "/");
 }
 
-function walkDirectoryFiles(root: string): string[] {
+export function walkDirectoryFiles(root: string): string[] {
   const results: string[] = [];
   const stack: string[] = [root];
   while (stack.length > 0) {
@@ -95,14 +121,31 @@ function walkDirectoryFiles(root: string): string[] {
     }
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
       if (entry.isDirectory()) {
+        if (shouldSkipFallbackDirectory(entry.name)) {
+          continue;
+        }
         stack.push(fullPath);
         continue;
       }
       if (entry.isFile()) {
+        if (shouldSkipFallbackFile(entry.name)) {
+          continue;
+        }
         results.push(fullPath);
       }
     }
   }
   return results;
+}
+
+function shouldSkipFallbackDirectory(name: string): boolean {
+  return FALLBACK_IGNORED_DIRECTORIES.has(name);
+}
+
+function shouldSkipFallbackFile(name: string): boolean {
+  return FALLBACK_IGNORED_FILES.has(name);
 }

@@ -406,10 +406,33 @@ function openInBrowser(url: string): Promise<void> {
       command = "xdg-open";
       args = [url];
     }
-    const child = spawn(command, args, { detached: true, stdio: "ignore" });
-    child.once("error", reject);
-    child.unref();
-    resolve();
+
+    let child;
+    try {
+      child = spawn(command, args, { detached: true, stdio: "ignore" });
+    } catch (err) {
+      reject(err);
+      return;
+    }
+
+    const cleanup = () => {
+      child.removeListener("error", handleError);
+      child.removeListener("spawn", handleSpawn);
+    };
+
+    const handleError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+
+    const handleSpawn = () => {
+      cleanup();
+      child.unref();
+      resolve();
+    };
+
+    child.once("error", handleError);
+    child.once("spawn", handleSpawn);
   });
 }
 
