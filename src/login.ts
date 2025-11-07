@@ -118,6 +118,7 @@ export async function loginAction(opts: any) {
       device_code,
       clientId,
       interval,
+      expires_in,
     );
 
     if (token) {
@@ -151,12 +152,32 @@ async function pollForToken(
   deviceCode: string,
   clientId: string,
   initialInterval: number,
+  expiresIn: number,
 ): Promise<any> {
   let pollingInterval = initialInterval;
   const spinner = yoctoSpinner({ text: "", color: "cyan" });
   let dots = 0;
 
   return new Promise((resolve, reject) => {
+    let pollTimeout: NodeJS.Timeout | null = null;
+    let expirationTimeout: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (pollTimeout) clearTimeout(pollTimeout);
+      if (expirationTimeout) clearTimeout(expirationTimeout);
+      spinner.stop();
+    };
+
+    // Set up expiration timeout
+    expirationTimeout = setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(
+          "Device code has expired. Please run the login command again.",
+        ),
+      );
+    }, expiresIn * 1000);
+
     const poll = async () => {
       // Update spinner text with animated dots
       dots = (dots + 1) % 4;
@@ -178,7 +199,7 @@ async function pollForToken(
         });
 
         if (data?.access_token) {
-          spinner.stop();
+          cleanup();
           resolve(data);
           return;
         } else if (error) {
@@ -193,34 +214,34 @@ async function pollForToken(
               );
               break;
             case "access_denied":
-              spinner.stop();
+              cleanup();
               reject(new Error("Access was denied by the user"));
               return;
             case "expired_token":
-              spinner.stop();
+              cleanup();
               reject(
                 new Error("The device code has expired. Please try again."),
               );
               return;
             default:
-              spinner.stop();
+              cleanup();
               reject(new Error(error.error_description || "Unknown error"));
               return;
           }
         }
       } catch (err) {
-        spinner.stop();
+        cleanup();
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
         reject(new Error(`Network error: ${errorMessage}`));
         return;
       }
 
-      setTimeout(poll, pollingInterval * 1000);
+      pollTimeout = setTimeout(poll, pollingInterval * 1000);
     };
 
     // Start polling after initial interval
-    setTimeout(poll, pollingInterval * 1000);
+    pollTimeout = setTimeout(poll, pollingInterval * 1000);
   });
 }
 
