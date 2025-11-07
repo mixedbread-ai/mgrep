@@ -1,6 +1,6 @@
 {
   "name": "mgrep",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Mixedbread semantic grep CLI",
   "license": "MIT",
   "author": "Mixedbread",
