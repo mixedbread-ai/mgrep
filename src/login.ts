@@ -33,7 +33,12 @@ export async function loginAction(opts: any) {
 
   // Check if already logged in
   const existingToken = await getStoredToken();
-  if (existingToken && isDevelopment()) {
+  if (existingToken) {
+    if (!isDevelopment()) {
+      outro(chalk.blue("✅ You're already logged in"));
+      process.exit(0);
+    }
+
     const shouldReauth = await confirm({
       message: "You're already logged in. Do you want to log in again?",
       initialValue: false,
