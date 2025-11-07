@@ -1,17 +1,32 @@
 {
   "name": "mgrep",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "build": "npx tsc",
-    "dev": "npx tsc && node dist/index.js",
-    "test": "vitest run",
-    "format": "prettier --write \"src/**/*.ts\""
+  "description": "Mixedbread semantic grep CLI",
+  "license": "MIT",
+  "author": "Mixedbread",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "bin": {
+    "mgrep": "dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mixedbread",
+    "cli",
+    "search",
+    "semantic",
+    "grep"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node dist/index.js",
+    "test": "vitest run",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "npm run build"
+  },
   "dependencies": {
     "@mixedbread/sdk": "^0.38.0",
     "chokidar": "^3.6.0",
@@ -22,5 +37,16 @@
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "vitest": "^4.0.7"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mixedbread-ai/mgrep.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mixedbread-ai/mgrep/issues"
+  },
+  "homepage": "https://github.com/mixedbread-ai/mgrep#readme"
 }

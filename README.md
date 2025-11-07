@@ -2,6 +2,20 @@
 
 A command line tool for searching using Mixedbread.
 
+## Installation
+
+```bash
+# Use mgrep ad-hoc without installing
+npx @mixedbread/grep search "where do we handle auth?"
+bunx @mixedbread/grep watch
+
+# Add to a project (installs the mgrep binary locally)
+pnpm add -D @mixedbread/grep
+
+# Install globally so the `mgrep` command is always on your PATH
+npm install -g @mixedbread/grep
+```
+
 ## Usage
 
 ```bash
