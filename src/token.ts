@@ -131,7 +131,7 @@ interface TokenData {
   created_at: string;
 }
 
-export async function getStoredToken(): Promise<TokenData> {
+export async function getStoredToken(): Promise<TokenData | null> {
   try {
     const data = await fs.readFile(TOKEN_FILE, "utf-8");
     return JSON.parse(data);

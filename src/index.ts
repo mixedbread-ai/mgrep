@@ -6,7 +6,11 @@ import { Mixedbread } from "@mixedbread/sdk";
 import { isIgnoredByGit, getGitRepoFiles, computeBufferHash } from "./utils";
 import ora from "ora";
 import pLimit from "p-limit";
-import { login } from "./login";
+import { login, loginAction } from "./login";
+import { getJWTToken } from "./lib/auth";
+import { createMxbaiClient } from "./lib/mxbai";
+import { confirm, isCancel, cancel } from "@clack/prompts";
+import { getStoredToken } from "./token";
 
 async function listStoreFileHashes(
   client: Mixedbread,
@@ -122,6 +126,25 @@ async function initialSync(
   return { processed, uploaded, total };
 }
 
+async function ensureAuthenticated(): Promise<void> {
+  const token = await getStoredToken();
+  if (token) {
+    return;
+  }
+
+  const shouldLogin = await confirm({
+    message: "You are not logged in. Would you like to login now?",
+    initialValue: true,
+  });
+
+  if (isCancel(shouldLogin) || !shouldLogin) {
+    cancel("Operation cancelled");
+    process.exit(0);
+  }
+
+  await loginAction();
+}
+
 program
   .version(
     JSON.parse(
@@ -130,7 +153,6 @@ program
       }),
     ).version,
   )
-  .option("--api-key <string>", "The API key to use", process.env.MXBAI_API_KEY)
   .option(
     "--store <string>",
     "The store to use",
@@ -142,15 +164,16 @@ program
   .description("File pattern searcher")
   .argument("<pattern>", "The pattern to search for")
   .action(async (pattern, _options, cmd) => {
-    const options: { apiKey: string; store: string } = cmd.optsWithGlobals();
+    const options: { store: string } = cmd.optsWithGlobals();
 
-    const mixedbread = new Mixedbread({
-      apiKey: options.apiKey,
-    });
+    await ensureAuthenticated();
+
+    const jwtToken = await getJWTToken();
+    const mxbai = createMxbaiClient(jwtToken);
 
     const path = process.cwd();
 
-    const results = await mixedbread.stores.search({
+    const results = await mxbai.stores.search({
       query: pattern,
       store_identifiers: [options.store],
       filters: {
@@ -182,11 +205,12 @@ program
   .command("watch")
   .description("Watch for file changes")
   .action(async (_args, cmd) => {
-    const options: { apiKey: string; store: string } = cmd.optsWithGlobals();
+    const options: { store: string } = cmd.optsWithGlobals();
 
-    const mixedbread = new Mixedbread({
-      apiKey: options.apiKey,
-    });
+    await ensureAuthenticated();
+
+    const jwtToken = await getJWTToken();
+    const mxbai = createMxbaiClient(jwtToken);
 
     const watchRoot = process.cwd();
     try {
@@ -196,7 +220,7 @@ program
       let lastTotal = 0;
       try {
         const result = await initialSync(
-          mixedbread,
+          mxbai,
           options.store,
           watchRoot,
           (info) => {
@@ -240,11 +264,9 @@ program
           return;
         }
 
-        uploadFile(mixedbread, options.store, filePath, filename).catch(
-          (err) => {
-            console.error("Failed to upload changed file:", filePath, err);
-          },
-        );
+        uploadFile(mxbai, options.store, filePath, filename).catch((err) => {
+          console.error("Failed to upload changed file:", filePath, err);
+        });
       });
     } catch (err) {
       console.error("Failed to start watcher:", err);

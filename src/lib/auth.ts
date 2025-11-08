@@ -14,6 +14,11 @@ export const authClient = createAuthClient({
 
 export async function getJWTToken(): Promise<string> {
   const token = await getStoredToken();
+  if (!token) {
+    throw new Error(
+      "No authentication token found. Please run 'mgrep login' to authenticate.",
+    );
+  }
 
   const response = await fetch(`${SERVER_URL}/api/auth/token`, {
     headers: {
