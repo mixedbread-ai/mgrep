@@ -139,3 +139,14 @@ export async function getStoredToken(): Promise<TokenData | null> {
     return null;
   }
 }
+
+export async function deleteToken(): Promise<void> {
+  try {
+    await fs.unlink(TOKEN_FILE);
+  } catch (error) {
+    // Ignore error if file doesn't exist
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+}

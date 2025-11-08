@@ -7,6 +7,7 @@ import { isIgnoredByGit, getGitRepoFiles, computeBufferHash } from "./utils";
 import ora from "ora";
 import pLimit from "p-limit";
 import { login, loginAction } from "./login";
+import { logout } from "./logout";
 import { getJWTToken } from "./lib/auth";
 import { createMxbaiClient } from "./lib/mxbai";
 import { confirm, isCancel, cancel } from "@clack/prompts";
@@ -275,5 +276,6 @@ program
   });
 
 program.addCommand(login);
+program.addCommand(logout);
 
 program.parse();
