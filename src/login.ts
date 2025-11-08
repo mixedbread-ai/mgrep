@@ -97,7 +97,6 @@ export async function loginAction() {
     );
 
     if (token) {
-      // Store the token
       await storeToken(token);
 
       // Get user info
@@ -109,9 +108,11 @@ export async function loginAction() {
         },
       });
 
+      const userIdentifier = session?.user?.name || session?.user?.email;
+
       outro(
         chalk.green(
-          `✅ Mixedbread platform login successful! Logged in as ${session?.user?.name || session?.user?.email}.`,
+          `✅ Mixedbread platform login successful! ${userIdentifier ? `Logged in as ${userIdentifier}.` : ""}`,
         ),
       );
     }
