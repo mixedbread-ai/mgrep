@@ -3,7 +3,6 @@ import chalk from "chalk";
 import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
-import { isDevelopment } from "./utils";
 import { getStoredToken, pollForToken, storeToken } from "./token";
 import { authClient } from "./lib/auth";
 
@@ -15,11 +14,6 @@ export async function loginAction() {
   // Check if already logged in
   const existingToken = await getStoredToken();
   if (existingToken) {
-    if (!isDevelopment()) {
-      outro(chalk.blue("✅ You're already logged in"));
-      process.exit(0);
-    }
-
     const shouldReauth = await confirm({
       message: "You're already logged in. Do you want to log in again?",
       initialValue: false,

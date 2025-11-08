@@ -26,12 +26,16 @@ export async function getJWTToken(): Promise<string> {
     },
   });
   if (!response.ok) {
-    throw new Error("Failed to get JWT token");
+    throw new Error(
+      "Failed to get JWT token. You token might have expired. Please run 'mgrep login' to authenticate.",
+    );
   }
 
   const data = await response.json();
   if (!data.token) {
-    throw new Error("Failed to get JWT token");
+    throw new Error(
+      "Failed to get JWT token. You token might have expired. Please run 'mgrep login' to authenticate.",
+    );
   }
 
   return data.token;

@@ -169,37 +169,43 @@ program
 
     await ensureAuthenticated();
 
-    const jwtToken = await getJWTToken();
-    const mxbai = createMxbaiClient(jwtToken);
+    try {
+      const jwtToken = await getJWTToken();
+      const mxbai = createMxbaiClient(jwtToken);
 
-    const path = process.cwd();
+      const path = process.cwd();
 
-    const results = await mxbai.stores.search({
-      query: pattern,
-      store_identifiers: [options.store],
-      filters: {
-        all: [
-          {
-            key: "path",
-            operator: "starts_with",
-            value: path,
-          },
-        ],
-      },
-    });
+      const results = await mxbai.stores.search({
+        query: pattern,
+        store_identifiers: [options.store],
+        filters: {
+          all: [
+            {
+              key: "path",
+              operator: "starts_with",
+              value: path,
+            },
+          ],
+        },
+      });
 
-    console.log(
-      results.data
-        .map((result) => {
-          let content =
-            result.type == "text"
-              ? result.text
-              : `Not a text chunk! (${result.type})`;
-          content = JSON.stringify(content);
-          return `${(result.metadata as any)?.path ?? "Unknown path"}: ${content}`;
-        })
-        .join("\n"),
-    );
+      console.log(
+        results.data
+          .map((result) => {
+            let content =
+              result.type == "text"
+                ? result.text
+                : `Not a text chunk! (${result.type})`;
+            content = JSON.stringify(content);
+            return `${(result.metadata as any)?.path ?? "Unknown path"}: ${content}`;
+          })
+          .join("\n"),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("Failed to search:", message);
+      process.exitCode = 1;
+    }
   });
 
 program
@@ -210,11 +216,12 @@ program
 
     await ensureAuthenticated();
 
-    const jwtToken = await getJWTToken();
-    const mxbai = createMxbaiClient(jwtToken);
-
-    const watchRoot = process.cwd();
     try {
+      const jwtToken = await getJWTToken();
+      const mxbai = createMxbaiClient(jwtToken);
+
+      const watchRoot = process.cwd();
+
       const spinner = ora({ text: "Indexing files..." }).start();
       let lastProcessed = 0;
       let lastUploaded = 0;
@@ -269,8 +276,9 @@ program
           console.error("Failed to upload changed file:", filePath, err);
         });
       });
-    } catch (err) {
-      console.error("Failed to start watcher:", err);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("Failed to start watcher:", message);
       process.exitCode = 1;
     }
   });
