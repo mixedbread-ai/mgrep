@@ -1,30 +1,15 @@
 import { cancel, confirm, intro, isCancel, outro } from "@clack/prompts";
-import { createAuthClient } from "better-auth/client";
-import { deviceAuthorizationClient } from "better-auth/client/plugins";
 import chalk from "chalk";
 import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
-import * as z from "zod";
 import { isDevelopment } from "./utils";
 import { getStoredToken, pollForToken, storeToken } from "./token";
+import { authClient } from "./lib/auth";
 
-const PLATFORM_URL = isDevelopment()
-  ? "http://localhost:3001"
-  : "https://www.platform.mixedbread.com";
 const CLIENT_ID = "mgrep";
 
-export async function loginAction(opts: any) {
-  const options = z
-    .object({
-      serverUrl: z.string().optional(),
-      clientId: z.string().optional(),
-    })
-    .parse(opts);
-
-  const serverUrl = options.serverUrl || PLATFORM_URL;
-  const clientId = options.clientId || CLIENT_ID;
-
+export async function loginAction() {
   intro(chalk.bold("🔐 Mixedbread Login"));
 
   // Check if already logged in
@@ -46,19 +31,13 @@ export async function loginAction(opts: any) {
     }
   }
 
-  // Create the auth client
-  const authClient = createAuthClient({
-    baseURL: serverUrl,
-    plugins: [deviceAuthorizationClient()],
-  });
-
   const spinner = yoctoSpinner({ text: "Requesting device authorization..." });
   spinner.start();
 
   try {
     // Request device code
     const { data, error } = await authClient.device.code({
-      client_id: clientId,
+      client_id: CLIENT_ID,
       scope: "openid profile email",
     });
 
@@ -112,7 +91,7 @@ export async function loginAction(opts: any) {
     const token = await pollForToken(
       authClient,
       device_code,
-      clientId,
+      CLIENT_ID,
       interval,
       expires_in,
     );
@@ -132,7 +111,7 @@ export async function loginAction(opts: any) {
 
       outro(
         chalk.green(
-          `✅ Mixedbread platform login successful! Logged in as ${session?.user?.name || session?.user?.email || "User"}`,
+          `✅ Mixedbread platform login successful! Logged in as ${session?.user?.name || session?.user?.email}.`,
         ),
       );
     }
@@ -145,6 +124,4 @@ export async function loginAction(opts: any) {
 
 export const login = new Command("login")
   .description("Login to the Mixedbread platform")
-  .option("--server-url <url>", "The Mixedbread platform URL", PLATFORM_URL)
-  .option("--client-id <id>", "The OAuth client ID", CLIENT_ID)
   .action(loginAction);
