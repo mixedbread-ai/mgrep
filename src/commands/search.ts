@@ -4,17 +4,19 @@ import { join } from "path";
 import { createStore } from "../lib/context";
 import type { ChunkType, FileMetadata } from "../lib/store";
 
-function formatChunk(chunk: ChunkType) {
+function formatChunk(chunk: ChunkType, show_content: boolean) {
   const pwd = process.cwd();
   const path =
     (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
   let line_range = "";
+  let content = "";
   switch (chunk.type) {
     case "text": {
       const start_line = (chunk.generated_metadata?.start_line as number) + 1;
       const end_line =
         start_line + (chunk.generated_metadata?.num_lines as number) + 1;
-      line_range = `, lines ${start_line} to ${end_line}`;
+      line_range = `:${start_line}-${end_line}`;
+      content = show_content ? chunk.text : "";
       break;
     }
     case "image_url":
@@ -30,7 +32,8 @@ function formatChunk(chunk: ChunkType) {
       line_range = "";
       break;
   }
-  return `.${path}${line_range}`;
+
+  return `.${path}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
 }
 
 export const search: Command = new CommanderCommand("search")
@@ -42,12 +45,14 @@ export const search: Command = new CommanderCommand("search")
     "The maximum number of results to return",
     "10",
   )
+  .option("-c", "Show content of the results", false)
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
   .allowExcessArguments(true)
   .action(async (pattern, exec_path, _options, cmd) => {
-    const options: { store: string; m: string } = cmd.optsWithGlobals();
+    const options: { store: string; m: string; c: boolean } =
+      cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
     }
@@ -72,7 +77,9 @@ export const search: Command = new CommanderCommand("search")
         },
       );
 
-      console.log(results.data.map(formatChunk).join("\n"));
+      console.log(
+        results.data.map((chunk) => formatChunk(chunk, options.c)).join("\n"),
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("Failed to search:", message);

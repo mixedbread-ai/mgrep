@@ -48,7 +48,7 @@ if __name__ == "__main__":
     response = {
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
-            "additionalContext": "Load the mgrep skill and use it instead of grep and glob and search."
+            "additionalContext": "Load mgrep:mgrep skill for exploration in codebases."
         }
     }
     print(json.dumps(response))
