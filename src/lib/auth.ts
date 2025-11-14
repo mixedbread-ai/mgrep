@@ -14,11 +14,21 @@ export const authClient = createAuthClient({
 
 export type AuthClient = typeof authClient;
 
+/**
+ * Gets the API key from environment variable or exchanges stored token for JWT
+ */
 export async function getJWTToken(): Promise<string> {
+  // Check for API key in environment variable first
+  const apiKey = process.env.MIXEDBREAD_API_KEY;
+  if (apiKey) {
+    return apiKey;
+  }
+
+  // Fall back to OAuth token exchange
   const token = await getStoredToken();
   if (!token) {
     throw new Error(
-      "No authentication token found. Please run 'mgrep login' to authenticate.",
+      "No authentication token found. Please run 'mgrep login' to authenticate or set MIXEDBREAD_API_KEY environment variable.",
     );
   }
 

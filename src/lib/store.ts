@@ -1,4 +1,6 @@
 import type { Mixedbread } from "@mixedbread/sdk";
+import type { Uploadable } from "@mixedbread/sdk/core/uploads";
+import type { SearchFilter } from "@mixedbread/sdk/resources/shared";
 import type {
   ScoredAudioURLInputChunk,
   ScoredImageURLInputChunk,
@@ -63,7 +65,7 @@ export interface Store {
     query: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
-    filters?: any,
+    filters?: SearchFilter,
   ): Promise<SearchResponse>;
 
   /**
@@ -109,15 +111,21 @@ export class MixedbreadStore implements Store {
     file: File | ReadableStream,
     options: UploadFileOptions,
   ): Promise<void> {
-    await this.client.stores.files.upload(
-      storeId,
-      file as any,
-      {
-        external_id: options.external_id,
-        overwrite: options.overwrite ?? true,
-        metadata: options.metadata,
-      } as any,
-    );
+    await (
+      this.client.stores.files.upload as (
+        storeIdentifier: string,
+        file: Uploadable,
+        body?: {
+          external_id?: string | null;
+          overwrite?: boolean;
+          metadata?: unknown;
+        },
+      ) => Promise<unknown>
+    )(storeId, file as Uploadable, {
+      external_id: options.external_id,
+      overwrite: options.overwrite ?? true,
+      metadata: options.metadata,
+    });
   }
 
   async search(
@@ -125,7 +133,7 @@ export class MixedbreadStore implements Store {
     query: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
-    filters?: any,
+    filters?: SearchFilter,
   ): Promise<SearchResponse> {
     const response = await this.client.stores.search({
       query,
