@@ -20,7 +20,7 @@
 
 1. **Install**
    ```bash
-   pnpm install -g @mixedbread/mgrep    # or npm / bun
+   npm install -g @mixedbread/mgrep    # or pnpm / bun
    ```
 
 2. **Sign in once**
