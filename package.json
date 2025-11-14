@@ -24,17 +24,21 @@
     "build": "tsc",
     "dev": "tsc && node dist/index.js",
     "test": "vitest run",
+    "playground:claude:ui": "tsx playground/claude-comparison/src/server.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build"
   },
   "dependencies": {
     "@mixedbread/sdk": "^0.38.0",
     "chokidar": "^3.6.0",
-    "commander": "^14.0.2"
+    "commander": "^14.0.2",
+    "mime-types": "^3.0.1"
   },
   "devDependencies": {
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^24.10.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.7"
   },
