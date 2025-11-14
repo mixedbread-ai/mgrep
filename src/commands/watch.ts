@@ -26,7 +26,7 @@ export const watch = new Command("watch")
           await store.create({
             name: options.store,
             description:
-              "MGrep store - Mixedbreads multimodal multilingual magic search",
+              "mgrep store - Mixedbreads multimodal multilingual magic search",
           });
         }
         const result = await initialSync(
