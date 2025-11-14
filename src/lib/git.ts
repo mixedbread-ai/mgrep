@@ -36,8 +36,9 @@ export class NodeGit implements Git {
   isGitRepository(dir: string): boolean {
     const normalizedDir = path.resolve(dir);
 
-    if (this.gitRepoCache.has(normalizedDir)) {
-      return this.gitRepoCache.get(normalizedDir)!;
+    const cached = this.gitRepoCache.get(normalizedDir);
+    if (cached !== undefined) {
+      return cached;
     }
 
     let isGit = false;
