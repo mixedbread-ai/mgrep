@@ -52,6 +52,12 @@ export async function listStoreFileHashes(
 }
 
 export async function ensureAuthenticated(): Promise<void> {
+  // Check if API key is set via environment variable
+  if (process.env.MIXEDBREAD_API_KEY) {
+    return;
+  }
+
+  // Check for stored OAuth token
   const token = await getStoredToken();
   if (token) {
     return;

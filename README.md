@@ -29,6 +29,13 @@
    ```
    A browser window (or verification URL) guides you through Mixedbread authentication.
 
+   **Alternative: API Key Authentication**
+   For CI/CD or headless environments, set the `MIXEDBREAD_API_KEY` environment variable:
+   ```bash
+   export MIXEDBREAD_API_KEY=your_api_key_here
+   ```
+   This bypasses the browser login flow entirely.
+
 3. **Index a project**
    ```bash
    cd path/to/repo
@@ -77,6 +84,10 @@
 - Ignore rules come straight from git, so temp files, build outputs, and vendored deps stay out of your embeddings.
 - `watch` reports progress (`processed / uploaded`) as it scans; leave it running in a terminal tab to keep your store fresh.
 - `search` accepts most `grep`-style switches, and politely ignores anything it cannot support, so existing muscle memory still works.
+
+**Environment Variables:**
+- `MIXEDBREAD_API_KEY`: Set this to authenticate without browser login (ideal for CI/CD)
+- `MXBAI_STORE`: Override the default store name (default: `mgrep`)
 
 ## Development
 
