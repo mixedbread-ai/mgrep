@@ -1,6 +1,6 @@
 # Authentication Frontend Contract
 
-To unblock the CLI experience we need a lightweight FE entry point that hands an API key (or short-lived token) back to `mgrep`. The CLI now exposes the following contract and the production implementation lives at `https://app.mixedbread.ai/mgrep/auth`:
+To unblock the CLI experience we need a lightweight FE entry point that hands an API key (or short-lived token) back to `mgrep`. The CLI now exposes the following contract and the production implementation lives at `https://www.platform.mixedbread.com/mgrep/auth`:
 
 1. `mgrep` starts a local HTTP server on `http://127.0.0.1:<port>/callback` and appends the URL (plus a random `state` string) to the auth page query parameters.
 2. The FE page should authenticate the user via Mixedbread, mint an API key (or other credential), and redirect the browser back to the callback with the same `state`.
@@ -16,7 +16,7 @@ If the FE does not know which store to use, it can omit that field; the CLI will
 
 ## Production flow
 
-1. The CLI opens `https://app.mixedbread.ai/mgrep/auth?redirect_uri=...&state=...&store=...`.
+1. The CLI opens `https://www.platform.mixedbread.com/mgrep/auth?redirect_uri=...&state=...&store=...`.
 2. The page forces a sign-in (using Better Auth). If the user lacks an organization we redirect them to `/onboarding` first.
 3. Once authenticated we mint an API key via the Mixedbread admin API (`createApiKey`) and render it so the operator can copy it.
 4. The page immediately `POST`s the payload `{ apiKey, store, state }` to the provided `redirect_uri`. We also provide a manual “Open callback manually” button that navigates to the callback with query parameters for older CLI binaries.

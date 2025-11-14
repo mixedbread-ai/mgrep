@@ -4,6 +4,19 @@ import * as fs from "fs";
 import * as path from "path";
 import chokidar from "chokidar";
 import { Mixedbread, toFile } from "@mixedbread/sdk";
+import { lookup as lookupMime } from "mime-types";
+const BINARY_MIME_OVERRIDES: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  bmp: "image/bmp",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+};
 import {
   isIgnoredByGit,
   getGitRepoFiles,
@@ -106,7 +119,8 @@ async function uploadFile(
 ): Promise<StoreFileCacheEntry> {
   const fileBuffer = buffer ?? fs.readFileSync(filePath);
   const hash = computeBufferHash(fileBuffer);
-  const file = await toFile(fileBuffer, repoRelativePath, { type: "text/plain" });
+  const mimeType = determineMimeType(repoRelativePath);
+  const file = await toFile(fileBuffer, repoRelativePath, { type: mimeType });
   const uploaded = await client.stores.files.upload(
     store,
     file,
@@ -116,6 +130,7 @@ async function uploadFile(
       metadata: {
         path: repoRelativePath,
         hash,
+        mime: mimeType,
       },
     },
   );
@@ -140,8 +155,13 @@ async function initialSync(client: Mixedbread, store: string, repoRoot: string):
       }
       const existingEntry = remoteFiles.get(repoRelativePath);
       if (!existingEntry || existingEntry.hash !== hash) {
-        await uploadFile(client, store, filePath, repoRelativePath, remoteFiles, buffer);
-        console.log(`Uploaded initial ${repoRelativePath}`);
+        try {
+          await uploadFile(client, store, filePath, repoRelativePath, remoteFiles, buffer);
+          console.log(`Uploaded initial ${repoRelativePath}`);
+        } catch (err) {
+          const error = err as { status?: number; message?: string };
+          console.error("Failed to process initial file:", filePath, error);
+        }
       }
     } catch (err) {
       console.error("Failed to process initial file:", filePath, err);
@@ -202,7 +222,9 @@ program
     console.log(`Syncing ${repoRoot} to store ${ctx.storeIdentifier}`);
     const cache = await initialSync(ctx.client, ctx.storeIdentifier, repoRoot);
     console.log("Sync complete.");
-    if (cmd.opts().watch) {
+    const watchRequested =
+      typeof (cmd as any).opts === "function" ? (cmd as Command).opts().watch === true : false;
+    if (watchRequested) {
       console.log("Watcher enabled. Listening for file changes…");
       startWatcher({
         client: ctx.client,
@@ -415,6 +437,33 @@ function injectImplicitSearchCommand(): void {
 }
 
 function getOptions(cmd?: Command): GlobalCLIOptions {
-  const fn = cmd?.optsWithGlobals ?? program.optsWithGlobals.bind(program);
-  return fn();
+  if (cmd && typeof (cmd as any).optsWithGlobals === "function") {
+    return cmd.optsWithGlobals();
+  }
+  return program.optsWithGlobals();
+}
+
+function determineMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase().replace(/^\./, "");
+  const binaryOverride = BINARY_MIME_OVERRIDES[ext];
+  if (binaryOverride) {
+    return binaryOverride;
+  }
+  const detected = lookupMime(filePath) || "text/plain";
+  if (detected.startsWith("text/") && !detected.includes("charset")) {
+    return `${detected}; charset=utf-8`;
+  }
+  if (detected === "application/octet-stream") {
+    return "text/plain; charset=utf-8";
+  }
+  if (detected === "application/json") {
+    return "text/plain; charset=utf-8";
+  }
+  if (detected === "video/mp2t") {
+    return "text/plain; charset=utf-8";
+  }
+  if (detected.startsWith("application/") && !binaryOverride) {
+    return "text/plain; charset=utf-8";
+  }
+  return detected;
 }

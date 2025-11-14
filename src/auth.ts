@@ -54,7 +54,7 @@ export interface AuthLogger {
 }
 
 const DEFAULT_STORE = "mgrep";
-const DEFAULT_AUTH_URL = "https://app.mixedbread.ai/mgrep/auth";
+const DEFAULT_AUTH_URL = "https://www.platform.mixedbread.com/mgrep/auth";
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 const defaultLogger: AuthLogger = {
