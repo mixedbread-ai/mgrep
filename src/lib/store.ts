@@ -39,12 +39,6 @@ export interface CreateStoreOptions {
   description?: string;
 }
 
-export type SearchFilters =
-  | SearchFilter
-  | SearchFilterCondition
-  | Array<SearchFilter | SearchFilterCondition>
-  | null;
-
 /**
  * Interface for store operations
  */
