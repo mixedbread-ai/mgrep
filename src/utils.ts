@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import pLimit from "p-limit";
 import { loginAction } from "./commands/login";
-import { filterRepoFiles, getDirectoryFiles } from "./lib/git";
+import type { Git } from "./lib/git";
 import type { Store } from "./lib/store";
 import { getStoredToken } from "./token";
 
@@ -52,6 +52,12 @@ export async function listStoreFileHashes(
 }
 
 export async function ensureAuthenticated(): Promise<void> {
+  // Check if API key is set via environment variable
+  if (process.env.MIXEDBREAD_API_KEY) {
+    return;
+  }
+
+  // Check for stored OAuth token
   const token = await getStoredToken();
   if (token) {
     return;
@@ -94,7 +100,7 @@ export async function uploadFile(
   try {
     await store.uploadFile(
       storeId,
-      fs.createReadStream(filePath) as unknown as ReadableStream,
+      fs.createReadStream(filePath) as unknown as File | ReadableStream,
       options,
     );
   } catch (_err) {
@@ -109,6 +115,7 @@ export async function uploadFile(
 
 export async function initialSync(
   store: Store,
+  git: Git,
   storeId: string,
   repoRoot: string,
   onProgress?: (info: {
@@ -119,7 +126,10 @@ export async function initialSync(
   }) => void,
 ): Promise<{ processed: number; uploaded: number; total: number }> {
   const storeHashes = await listStoreFileHashes(store, storeId);
-  const repoFiles = filterRepoFiles(getDirectoryFiles(repoRoot), repoRoot);
+  const repoFiles = git.filterRepoFiles(
+    git.getDirectoryFiles(repoRoot),
+    repoRoot,
+  );
   const total = repoFiles.length;
   let processed = 0;
   let uploaded = 0;

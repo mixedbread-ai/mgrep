@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand } from "commander";
 import { createStore } from "../lib/context";
@@ -59,7 +59,9 @@ export const search: Command = new CommanderCommand("search")
 
     try {
       const store = await createStore();
-      const search_path = join(process.cwd(), exec_path ?? "");
+      const search_path = exec_path?.startsWith("/")
+        ? exec_path
+        : normalize(join(process.cwd(), exec_path ?? ""));
 
       const results = await store.search(
         options.store,

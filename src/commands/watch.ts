@@ -2,8 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { Command } from "commander";
 import ora from "ora";
-import { createStore } from "../lib/context";
-import { isIgnoredByGit } from "../lib/git";
+import { createGit, createStore } from "../lib/context";
 import { initialSync, uploadFile } from "../utils";
 
 export const watch = new Command("watch")
@@ -13,6 +12,7 @@ export const watch = new Command("watch")
 
     try {
       const store = await createStore();
+      const git = createGit();
       const watchRoot = process.cwd();
 
       const spinner = ora({ text: "Indexing files..." }).start();
@@ -26,11 +26,12 @@ export const watch = new Command("watch")
           await store.create({
             name: options.store,
             description:
-              "MGrep store - Mixedbreads mulitmodal mulitlingual magic search",
+              "mgrep store - Mixedbreads multimodal multilingual magic search",
           });
         }
         const result = await initialSync(
           store,
+          git,
           options.store,
           watchRoot,
           (info) => {
@@ -69,7 +70,7 @@ export const watch = new Command("watch")
           return;
         }
 
-        if (isIgnoredByGit(filePath, watchRoot)) {
+        if (git.isIgnoredByGit(filePath, watchRoot)) {
           return;
         }
 
