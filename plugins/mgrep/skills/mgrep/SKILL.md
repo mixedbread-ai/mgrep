@@ -21,7 +21,6 @@ line range of the match.
 mgrep "What code parsers are available?"  # search in the current directory
 mgrep "How are chunks defined?" src/models  # search in the src/models directory
 mgrep -m 10 "What is the maximum number of concurrent workers in the code parser?"  # limit the number of results to 10
-mgrep -c "How do hooks manage component state and lifecycle under the hood?"  # get with content
 ```
 
 ### Don't
