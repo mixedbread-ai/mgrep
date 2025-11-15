@@ -15,7 +15,7 @@ export function isGitRepository(dir: string): boolean {
   const normalizedDir = path.resolve(dir);
 
   if (gitRepoCache.has(normalizedDir)) {
-    return gitRepoCache.get(normalizedDir)!;
+    return gitRepoCache.get(normalizedDir) ?? false;
   }
 
   let isGit = false;
