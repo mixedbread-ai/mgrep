@@ -14,7 +14,7 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
     case "text": {
       const start_line = (chunk.generated_metadata?.start_line as number) + 1;
       const end_line =
-        start_line + (chunk.generated_metadata?.num_lines as number) + 1;
+        start_line + (chunk.generated_metadata?.num_lines as number);
       line_range = `:${start_line}-${end_line}`;
       content = show_content ? chunk.text : "";
       break;
