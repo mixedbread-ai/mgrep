@@ -69,7 +69,24 @@
 | `mgrep install-claude-code` | Log in, add the Mixedbread mgrep plugin to Claude Code, and install it for you. |
 | `mgrep --store my-store ...` | Use or create a specific Mixedbread store instead of the default `mgrep`. |
 
+### `mgrep search`
 
+`mgrep search` is the default command. It can be used to search the current
+directory for a pattern.
+
+| Option | Description |
+| --- | --- |
+| `-m <max_count>` | The maximum number of results to return |
+| `-c` | Show content of the results |
+| `-a` | Generate an answer to the question based on the results |
+
+**Examples:**
+```bash
+mgrep "What code parsers are available?"  # search in the current directory
+mgrep "How are chunks defined?" src/models  # search in the src/models directory
+mgrep -m 10 "What is the maximum number of concurrent workers in the code parser?"  # limit the number of results to 10
+mgrep -a "What code parsers are available?"  # generate an answer to the question based on the results
+```
 
 ## Mixedbread under the hood
 
