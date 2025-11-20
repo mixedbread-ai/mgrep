@@ -3,38 +3,19 @@
     <img src="public/logo_mb.svg" alt="mgrep" width="96" height="96" />
   </a>
   <h1>mgrep</h1>
-  <p><em>A calm, CLI-native way to semantically search every corner of your repo with Mixedbread.</em></p>
+  <p><em>A calm, CLI-native way to semantically grep everything, like code, images, pdfs and more.</em></p>
   <a href="https://www.npmjs.com/package/@mixedbread/mgrep"><img src="https://badge.fury.io/js/@mixedbread%2Fcli.svg" alt="npm version" /></a>
-  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a><br>
+  <a href="https://demo.mgrep.mixedbread.com">Try it out in our playground!</a>
 </div>
 
-## Why mgrep
-
-`grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
-
-But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in cases where you need it most on extensive codebase. 
-
-Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generation of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
-
-But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool. 
-
-`mgrep`'s been designed with seamlessness in mind:
+## Why mgrep?
 - Natural-language search that feels as immediate as `grep`.
+- Semantic, multilingual & multimodal (audio, video support coming soon!)
 - Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
 - Friendly device-login flow and first-class coding agent integrations.
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
-
-Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our full-featured search solution. It combines state-of-the-art semantic retrieval models with context-aware parsing and optimized inference methods to provide you with a natural language companion to `grep`. We believe both tools belong in your toolkit: use `grep` for exact matches, `mgrep` for semantic understanding and intent.
-
-
-## When to use what
-
-We designed `mgrep` to complement `grep`, not replace it. The best code search combines `mgrep` with `grep`.
-
-| Use `grep` (or `ripgrep`) for... | Use `mgrep` for... |
-| --- | --- |
-| **Exact Matches** | **Intent Search** |
-| Symbol tracing, Refactoring, Regex | Code exploration, Feature discovery, Onboarding |
+- Reduces the token usage of your agent by 2x while maintaining superior performance
 
 ## Quick Start
 
@@ -78,6 +59,41 @@ We designed `mgrep` to complement `grep`, not replace it. The best code search c
   3. Ask Claude something just like you do locally; results stream straight into the chat with file paths and line hints.  
   
 - More agents (Codex, Cursor, Windsurf, etc.) are on the way—this section will grow as soon as each integration lands.
+
+## Making your agent smarter
+
+We plugged `mgrep` into Claude Code and ran a benchmark of 50 QA tasks to evaluate the economics of `mgrep` against `grep`.
+
+For the same tasks and the same quality of outputs, we saw on average:
+
+![mgep benchmark](assets/bench.jpg)
+
+`mgrep` finds the relevant snippets in a few semantic queries first, and the model spends its capacity on reasoning instead of scanning through irrelevant code from endless `grep` attempts. You can [Try it yourself](http://demo.mgrep.mixedbread.com).
+
+*Note: Win Rate(%) was calculated by using an LLM as a judge.*
+
+## Why we build mgrep
+
+`grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
+
+But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in cases where you need it most on extensive codebase. 
+
+Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generation of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
+
+But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool. 
+
+Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our full-featured search solution. It combines state-of-the-art semantic retrieval models with context-aware parsing and optimized inference methods to provide you with a natural language companion to `grep`. We believe both tools belong in your toolkit: use `grep` for exact matches, `mgrep` for semantic understanding and intent.
+
+
+## When to use what
+
+We designed `mgrep` to complement `grep`, not replace it. The best code search combines `mgrep` with `grep`.
+
+| Use `grep` (or `ripgrep`) for... | Use `mgrep` for... |
+| --- | --- |
+| **Exact Matches** | **Intent Search** |
+| Symbol tracing, Refactoring, Regex | Code exploration, Feature discovery, Onboarding |
+
 
 ## Commands at a Glance
 
