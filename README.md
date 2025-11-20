@@ -18,9 +18,9 @@ Worst of all, if you're looking for deeply-buried critical business logic, you c
 
 But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool. 
 
-`mgrep`'s been designed with ligthweightness in mind:
+`mgrep`'s been designed with seamlessness in mind:
 - Natural-language search that feels as immediate as `grep`.
-- Seamless background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
+- Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
 - Friendly device-login flow and first-class coding agent integrations.
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
 
