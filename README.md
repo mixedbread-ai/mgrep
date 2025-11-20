@@ -17,6 +17,14 @@
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
 - Reduces the token usage of your agent by 2x while maintaining superior performance
 
+```bash
+# index once
+mgrep watch
+
+# then ask your repo things in natural language
+mgrep "where do we set up auth?"
+```
+
 ## Quick Start
 
 1. **Install**
@@ -49,7 +57,10 @@
    mgrep "where do we set up auth?" src/lib
    mgrep -m 25 "store schema"
    ```
-   Searches default to your current working directory unless you pass a path.
+   Searches default to the current working directory unless you pass a path.
+
+**Today, `mgrep` works great on:** code, text, PDFs, images.  
+**Coming soon:** audio & video.
 
 ## Using it with Coding Agents
 
@@ -64,21 +75,21 @@
 
 We plugged `mgrep` into Claude Code and ran a benchmark of 50 QA tasks to evaluate the economics of `mgrep` against `grep`.
 
-For the same tasks and the same quality of outputs, we saw on average:
+![mgrep benchmark](assets/bench.jpg)
 
-![mgep benchmark](assets/bench.jpg)
+In our 50-task benchmark, `mgrep`+Claude Code used ~2x fewer tokens than grep-based workflows at similar or better judged quality.
 
 `mgrep` finds the relevant snippets in a few semantic queries first, and the model spends its capacity on reasoning instead of scanning through irrelevant code from endless `grep` attempts. You can [Try it yourself](http://demo.mgrep.mixedbread.com).
 
-*Note: Win Rate(%) was calculated by using an LLM as a judge.*
+*Note: Win Rate (%) was calculated by using an LLM as a judge.*
 
-## Why we build mgrep
+## Why we built mgrep
 
 `grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
 
-But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in cases where you need it most on extensive codebase. 
+But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in the cases where you need it most, on large codebases.
 
-Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generation of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
+Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generations of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
 
 But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool. 
 
