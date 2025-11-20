@@ -12,7 +12,7 @@
 
 `grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
 
-But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns, it slows down considerably in cases where you need it most on extensive codebase. 
+But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in cases where you need it most on extensive codebase. 
 
 Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generation of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
 
