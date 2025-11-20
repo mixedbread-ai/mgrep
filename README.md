@@ -3,18 +3,24 @@
     <img src="public/logo_mb.svg" alt="mgrep" width="96" height="96" />
   </a>
   <h1>mgrep</h1>
-  <p><em>A calm, CLI-native way to search every corner of your repo with Mixedbread.</em></p>
+  <p><em>A calm, CLI-native way to semantically search every corner of your repo with Mixedbread.</em></p>
   <a href="https://www.npmjs.com/package/@mixedbread/mgrep"><img src="https://badge.fury.io/js/@mixedbread%2Fcli.svg" alt="npm version" /></a>
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a>
 </div>
 
 ## Why mgrep
 
+`grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder. But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns, it slows down considerably in cases where you need it most on extensive codebase. Worst of all, if you're looking for critical business logic buried deep in your codebase, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generation of engineers at your workplace for `grep` to find it. 
+
+Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool". The key features of `mgrep` are:
+
 - Natural-language search that feels as immediate as `grep`.
-- Powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search).
-- Seamless background indexing via `mgrep watch`, perfectly happy inside git repos.
-- Friendly device-login flow plus optional coding agent integrations.
-- Built for agents and humans alike: quiet output, thoughtful defaults, and escape hatches everywhere.
+- Seamless background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
+- Friendly device-login flow and first-class coding agent integrations.
+- It's built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
+
+`mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our comprehensive search solutions. Under the hood, it combines state-of-the-art retrieval models with context-aware parsing and optimized inference methods to provide you with a semantic alternative to `grep` that just works, without any bloat getting in your way.
+
 
 ## Quick Start
 
