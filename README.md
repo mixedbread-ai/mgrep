@@ -24,7 +24,7 @@ But it doesn't have to be this way. Everything else in our toolkit is increasing
 - Friendly device-login flow and first-class coding agent integrations.
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
 
-Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our comprehensive search solutions. It combines state-of-the-art retrieval models with context-aware parsing and optimized inference methods to provide you with a semantic alternative to `grep` that just works, without any bloat getting in your way.
+Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our comprehensive search solutions. It combines state-of-the-art semantic retrieval models with context-aware parsing and optimized inference methods to provide you with a natural language alternative to `grep` that just works, without bloat getting in your way.
 
 
 ## Quick Start
