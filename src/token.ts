@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import chalk from "chalk";
 import yoctoSpinner from "yocto-spinner";
-import type { AuthClient } from "./lib/auth";
+import { type AuthClient, SERVER_URL } from "./lib/auth";
 
 const CONFIG_DIR = path.join(os.homedir(), ".mgrep");
 const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
@@ -133,12 +133,59 @@ interface TokenData {
   expires_in: number;
 }
 
+/**
+ * Checks if a token is expiring within 3 days
+ */
+function isTokenExpiringSoon(
+  token: TokenData & { created_at: string },
+): boolean {
+  const createdAt = new Date(token.created_at).getTime();
+  const expiresAt = createdAt + token.expires_in * 1000;
+  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+  return expiresAt - Date.now() < threeDaysInMs;
+}
+
+/**
+ * Refreshes an expiring token by calling the refresh endpoint
+ */
+async function refreshToken(currentToken: string): Promise<TokenData> {
+  const response = await fetch(`${SERVER_URL}/api/refresh-device-token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${currentToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh token");
+  }
+
+  return await response.json();
+}
+
 export async function getStoredToken(): Promise<
   (TokenData & { created_at: string }) | null
 > {
   try {
     const data = await fs.readFile(TOKEN_FILE, "utf-8");
-    return JSON.parse(data);
+    const token = JSON.parse(data);
+
+    // Check if token is expiring within 3 days and refresh if needed
+    if (isTokenExpiringSoon(token)) {
+      try {
+        const refreshedToken = await refreshToken(token.access_token);
+        await storeToken(refreshedToken);
+        return { ...refreshedToken, created_at: new Date().toISOString() };
+      } catch (error) {
+        console.warn(
+          "Failed to refresh token:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        return token;
+      }
+    }
+
+    return token;
   } catch {
     return null;
   }

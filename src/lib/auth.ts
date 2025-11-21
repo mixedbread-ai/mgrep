@@ -3,7 +3,7 @@ import { deviceAuthorizationClient } from "better-auth/plugins";
 import { getStoredToken } from "../token";
 import { isDevelopment } from "../utils";
 
-const SERVER_URL = isDevelopment()
+export const SERVER_URL = isDevelopment()
   ? "http://localhost:3001"
   : "https://www.platform.mixedbread.com";
 
@@ -37,6 +37,7 @@ export async function getJWTToken(): Promise<string> {
       Authorization: `Bearer ${token.access_token}`,
     },
   });
+
   if (!response.ok) {
     throw new Error(
       "Failed to get JWT token. You token might have expired. Please run 'mgrep login' to authenticate.",
