@@ -55,6 +55,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check formatting and linting
+        run: pnpm run format:check
+
+      - name: Run tests
+        run: pnpm test
+
       - name: Publish to npm
         run: npm publish --access public --provenance
         env:
