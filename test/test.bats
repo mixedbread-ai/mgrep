@@ -10,8 +10,11 @@ setup() {
 
     # get the containing directory of this file
     DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
-    # make executables in src/ visible to PATH
-    PATH="$DIR/../dist/bin:$PATH"
+    
+    # Create a temporary bin directory for the test executable
+    mkdir -p "$BATS_TMPDIR/bin"
+    ln -sf "$DIR/../dist/index.js" "$BATS_TMPDIR/bin/mgrep"
+    PATH="$BATS_TMPDIR/bin:$PATH"
 
     export MGREP_IS_TEST=1
     export MGREP_TEST_STORE_PATH="$BATS_TMPDIR/mgrep-test-store.json"
