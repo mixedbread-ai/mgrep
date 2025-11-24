@@ -6,7 +6,7 @@ import { login } from "./commands/login";
 import { logout } from "./commands/logout";
 import { search } from "./commands/search";
 import { watch } from "./commands/watch";
-import { installClaudeCode } from "./install/claude-code";
+import { installClaudeCode, uninstallClaudeCode } from "./install/claude-code";
 import { setupLogger } from "./lib/logger";
 
 setupLogger();
@@ -28,6 +28,7 @@ program
 program.addCommand(search, { isDefault: true });
 program.addCommand(watch);
 program.addCommand(installClaudeCode);
+program.addCommand(uninstallClaudeCode);
 program.addCommand(login);
 program.addCommand(logout);
 
