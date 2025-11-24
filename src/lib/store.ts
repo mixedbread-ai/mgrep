@@ -359,7 +359,7 @@ export class TestStore implements Store {
     _storeId: string,
     query: string,
     top_k?: number,
-    _search_options?: { rerank?: boolean },
+    search_options?: { rerank?: boolean },
     filters?: SearchFilter,
   ): Promise<SearchResponse> {
     const db = await this.load();
@@ -386,7 +386,8 @@ export class TestStore implements Store {
         if (lines[i].toLowerCase().includes(query.toLowerCase())) {
           results.push({
             type: "text",
-            text: lines[i],
+            text:
+              lines[i] + (search_options?.rerank ? "" : " without reranking"),
             score: 1.0,
             metadata: file.metadata,
             chunk_index: results.length - 1,

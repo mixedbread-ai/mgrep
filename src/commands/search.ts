@@ -100,6 +100,15 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
   return `.${path}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
 }
 
+function parseBooleanEnv(
+  envVar: string | undefined,
+  defaultValue: boolean,
+): boolean {
+  if (envVar === undefined) return defaultValue;
+  const lower = envVar.toLowerCase();
+  return lower === "1" || lower === "true" || lower === "yes" || lower === "y";
+}
+
 export const search: Command = new CommanderCommand("search")
   .description("File pattern searcher")
   .option("-i", "Makes the search case-insensitive", false)
@@ -107,23 +116,32 @@ export const search: Command = new CommanderCommand("search")
   .option(
     "-m, --max-count <max_count>",
     "The maximum number of results to return",
-    "10",
+    process.env.MGREP_MAX_COUNT || "10",
   )
-  .option("-c, --content", "Show content of the results", false)
+  .option(
+    "-c, --content",
+    "Show content of the results",
+    parseBooleanEnv(process.env.MGREP_CONTENT, false),
+  )
   .option(
     "-a, --answer",
     "Generate an answer to the question based on the results",
-    false,
+    parseBooleanEnv(process.env.MGREP_ANSWER, false),
   )
   .option(
     "-s, --sync",
     "Syncs the local files to the store before searching",
-    false,
+    parseBooleanEnv(process.env.MGREP_SYNC, false),
   )
   .option(
     "-d, --dry-run",
     "Dry run the search process (no actual file syncing)",
-    false,
+    parseBooleanEnv(process.env.MGREP_DRY_RUN, false),
+  )
+  .option(
+    "--no-rerank",
+    "Disable reranking of search results",
+    parseBooleanEnv(process.env.MGREP_RERANK, true), // `true` here means that reranking is enabled by default
   )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
@@ -137,6 +155,7 @@ export const search: Command = new CommanderCommand("search")
       answer: boolean;
       sync: boolean;
       dryRun: boolean;
+      rerank: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -188,7 +207,7 @@ export const search: Command = new CommanderCommand("search")
           options.store,
           pattern,
           parseInt(options.maxCount, 10),
-          { rerank: true },
+          { rerank: options.rerank },
           {
             all: [
               {
@@ -205,7 +224,7 @@ export const search: Command = new CommanderCommand("search")
           options.store,
           pattern,
           parseInt(options.maxCount, 10),
-          { rerank: true },
+          { rerank: options.rerank },
           {
             all: [
               {

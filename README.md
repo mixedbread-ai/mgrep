@@ -126,6 +126,11 @@ directory for a pattern.
 | `-c`, `--content` | Show content of the results |
 | `-a`, `--answer` | Generate an answer to the question based on the results |
 | `-s`, `--sync` | Sync the local files to the store before searching |
+| `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
+| `--no-rerank` | Disable reranking of search results |
+
+All search options can also be configured via environment variables (see
+[Environment Variables](#environment-variables) section below).
 
 **Examples:**
 ```bash
@@ -152,7 +157,9 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 ## Mixedbread under the hood
 
 - Every file is pushed into a Mixedbread Store using the same SDK your apps get.
-- Searches request top-k matches with Mixedbread reranking enabled for tighter relevance.
+- Searches request top-k matches with Mixedbread reranking enabled by default
+  for tighter relevance (can be disabled with `--no-rerank` or
+  `MGREP_RERANK=0`).
 - Results include relative paths plus contextual hints (line ranges for text, page numbers for PDFs, etc.) for a skim-friendly experience.
 - Because stores are cloud-backed, agents and teammates can query the same corpus without re-uploading.
 
@@ -163,9 +170,48 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 - `watch` reports progress (`processed / uploaded`) as it scans; leave it running in a terminal tab to keep your store fresh.
 - `search` accepts most `grep`-style switches, and politely ignores anything it cannot support, so existing muscle memory still works.
 
-**Environment Variables:**
+## Environment Variables
+
+All search options can be configured via environment variables, which is
+especially useful for CI/CD pipelines or when you want to set defaults for all
+searches.
+
+### Authentication & Store
+
 - `MXBAI_API_KEY`: Set this to authenticate without browser login (ideal for CI/CD)
 - `MXBAI_STORE`: Override the default store name (default: `mgrep`)
+
+### Search Options
+
+- `MGREP_MAX_COUNT`: Maximum number of results to return (default: `10`)
+- `MGREP_CONTENT`: Show content of the results (set to `1` or `true` to enable)
+- `MGREP_ANSWER`: Generate an answer based on the results (set to `1` or `true` to enable)
+- `MGREP_SYNC`: Sync files before searching (set to `1` or `true` to enable)
+- `MGREP_DRY_RUN`: Enable dry run mode (set to `1` or `true` to enable)
+- `MGREP_RERANK`: Enable reranking of search results (set to `0` or `false` to disable, default: enabled)
+
+**Examples:**
+```bash
+# Set default max results to 25
+export MGREP_MAX_COUNT=25
+mgrep "search query"
+
+# Always show content in results
+export MGREP_CONTENT=1
+mgrep "search query"
+
+# Disable reranking globally
+export MGREP_RERANK=0
+mgrep "search query"
+
+# Use multiple options together
+export MGREP_MAX_COUNT=20
+export MGREP_CONTENT=1
+export MGREP_ANSWER=1
+mgrep "search query"
+```
+
+Note: Command-line options always override environment variables.
 
 ## Development
 

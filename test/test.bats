@@ -55,6 +55,7 @@ teardown() {
     assert_success
     assert_output --partial 'test.txt'
     refute_output --partial 'test-2.txt'
+    refute_output --partial 'without reranking'
 }
 
 @test "Search with answer" {
@@ -208,4 +209,20 @@ teardown() {
     assert_success
     assert_output --partial 'test.txt'
     refute_output --partial 'test.log'
+}
+
+@test "Search with no rerank" {
+    run mgrep search -c --no-rerank test
+
+    assert_success
+    assert_output --partial 'test.txt'
+    assert_output --partial 'without reranking'
+}
+
+@test "Search with no rerank environment variable" {
+    export MGREP_RERANK=0
+    output=$(mgrep search -c test)
+
+    assert_output --partial 'test.txt'
+    assert_output --partial 'without reranking'
 }
