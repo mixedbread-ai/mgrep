@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
+import chalk from "chalk";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
 import { loginAction } from "./commands/login";
@@ -16,19 +17,21 @@ import { getStoredToken } from "./token";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 
-export function computeBufferHash(buffer: Buffer): string {
-  return createHash("sha256").update(buffer).digest("hex");
-}
-
-export function computeFileHash(
-  filePath: string,
-  readFileSyncFn: (p: string) => Buffer,
-): string {
-  const buffer = readFileSyncFn(filePath);
-  return computeBufferHash(buffer);
-}
-
+/**
+ * Returns true if the CLI should use development/local API endpoints.
+ * Can be overridden with MGREP_ENV environment variable:
+ * - MGREP_ENV=development: force development mode (localhost)
+ * - MGREP_ENV=production: force production mode (platform.mixedbread.com)
+ */
 export function isDevelopment(): boolean {
+  const envOverride = process.env.MGREP_ENV;
+  if (envOverride === "production") {
+    return false;
+  }
+  if (envOverride === "development") {
+    return true;
+  }
+
   // Check if running from node_modules (published package)
   if (__dirname.includes("node_modules")) {
     return false;
@@ -41,6 +44,43 @@ export function isDevelopment(): boolean {
 
   // Default to local if we can't determine
   return true;
+}
+
+export function isConnectionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const cause = (error as { cause?: { code?: string } }).cause;
+  return cause?.code === "ECONNREFUSED";
+}
+
+export function printConnectionErrorHint(serverUrl: string): void {
+  const devMode = isDevelopment();
+  console.error("");
+  console.error(chalk.yellow(`isDevelopment: ${devMode}`));
+  console.error(chalk.yellow(`Server URL: ${serverUrl}`));
+  if (devMode) {
+    console.error("");
+    console.error(
+      chalk.cyan(
+        "Hint: Running in development mode, which connects to localhost.",
+      ),
+    );
+    console.error(
+      chalk.cyan("To use the production API, set MGREP_ENV=production:"),
+    );
+    console.error(chalk.gray("  MGREP_ENV=production mgrep <command>"));
+  }
+}
+
+export function computeBufferHash(buffer: Buffer): string {
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+export function computeFileHash(
+  filePath: string,
+  readFileSyncFn: (p: string) => Buffer,
+): string {
+  const buffer = readFileSyncFn(filePath);
+  return computeBufferHash(buffer);
 }
 
 export async function listStoreFileHashes(

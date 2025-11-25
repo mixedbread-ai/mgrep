@@ -3,8 +3,9 @@ import chalk from "chalk";
 import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
-import { authClient } from "../lib/auth";
+import { authClient, SERVER_URL } from "../lib/auth";
 import { getStoredToken, pollForToken, storeToken } from "../token";
+import { isConnectionError, printConnectionErrorHint } from "../utils";
 
 const CLIENT_ID = "mgrep";
 
@@ -112,7 +113,11 @@ export async function loginAction() {
     }
   } catch (err) {
     spinner.stop();
-    console.error(`${err instanceof Error ? err.message : "Unknown error"}`);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error(errorMessage);
+    if (isConnectionError(err)) {
+      printConnectionErrorHint(SERVER_URL);
+    }
     process.exit(1);
   }
 }

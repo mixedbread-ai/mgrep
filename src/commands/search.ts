@@ -1,7 +1,7 @@
 import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand } from "commander";
-import { createFileSystem, createStore } from "../lib/context";
+import { BASE_URL, createFileSystem, createStore } from "../lib/context";
 import type {
   AskResponse,
   ChunkType,
@@ -12,7 +12,11 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { initialSync } from "../utils";
+import {
+  initialSync,
+  isConnectionError,
+  printConnectionErrorHint,
+} from "../utils";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};
@@ -248,6 +252,9 @@ export const search: Command = new CommanderCommand("search")
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("Failed to search:", message);
+      if (isConnectionError(error)) {
+        printConnectionErrorHint(BASE_URL);
+      }
       process.exitCode = 1;
     }
   });

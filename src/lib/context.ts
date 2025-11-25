@@ -9,7 +9,7 @@ import {
 import { type Git, NodeGit } from "./git";
 import { MixedbreadStore, type Store, TestStore } from "./store";
 
-const BASE_URL = isDevelopment()
+export const BASE_URL = isDevelopment()
   ? "http://localhost:8000"
   : "https://api.mixedbread.com";
 
