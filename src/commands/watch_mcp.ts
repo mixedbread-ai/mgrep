@@ -9,7 +9,7 @@ import { startWatch } from "./watch";
 
 export const watchMcp = new Command("mcp")
   .description("Start MCP server for mgrep")
-  .action(async (_pattern, exec_path, _options, cmd) => {
+  .action(async (_options, cmd) => {
     process.on("SIGINT", () => {
       console.error("Received SIGINT, shutting down gracefully...");
       process.exit(0);
@@ -23,9 +23,6 @@ export const watchMcp = new Command("mcp")
     const options: {
       store: string;
     } = cmd.optsWithGlobals();
-    if (exec_path?.startsWith("--")) {
-      exec_path = "";
-    }
 
     setTimeout(() => {
       startWatch({ store: options.store, dryRun: false });
