@@ -9,7 +9,7 @@ import { startWatch } from "./watch";
 
 export const watchMcp = new Command("mcp")
   .description("Start MCP server for mgrep")
-  .action(async () => {
+  .action(async (_pattern, exec_path, _options, cmd) => {
     process.on("SIGINT", () => {
       console.error("Received SIGINT, shutting down gracefully...");
       process.exit(0);
@@ -19,9 +19,16 @@ export const watchMcp = new Command("mcp")
       console.error("Received SIGTERM, shutting down gracefully...");
       process.exit(0);
     });
-    const store = process.env.MXBAI_STORE || "mgrep";
+
+    const options: {
+      store: string;
+    } = cmd.optsWithGlobals();
+    if (exec_path?.startsWith("--")) {
+      exec_path = "";
+    }
+
     setTimeout(() => {
-      startWatch({ store, dryRun: false });
+      startWatch({ store: options.store, dryRun: false });
     }, 0);
 
     const transport = new StdioServerTransport();
