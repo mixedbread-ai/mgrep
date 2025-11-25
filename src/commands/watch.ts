@@ -21,7 +21,13 @@ export const watch = new Command("watch")
     try {
       const store = await createStore();
       const fileSystem = createFileSystem({
-        ignorePatterns: ["*.lock", "*.bin", "*.ipynb", "*.pyc"],
+        ignorePatterns: [
+          "*.lock",
+          "*.bin",
+          "*.ipynb",
+          "*.pyc",
+          "*.safetensors",
+        ],
       });
       const watchRoot = process.cwd();
 
