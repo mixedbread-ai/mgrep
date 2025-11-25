@@ -52,12 +52,15 @@ const execAsync = promisify(exec);
 
 async function installPlugin() {
   try {
-    await execAsync("codex mcp add mgrep mgrep mcp", { shell, env: process.env });
+    await execAsync("codex mcp add mgrep mgrep mcp", {
+      shell,
+      env: process.env,
+    });
 
     const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    fs.writeFileSync(destPath, SKILL);
-    console.log("Successfully added the mgrep to the Codex MCP server");
+    fs.appendFileSync(destPath, SKILL);
+    console.log("Successfully added the mgrep to the Codex agent");
   } catch (error) {
     console.error(`Error installing plugin: ${error}`);
     process.exit(1);
@@ -71,15 +74,16 @@ async function uninstallPlugin() {
     console.error(`Error uninstalling plugin: ${error}`);
     process.exit(1);
   }
+
   const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
-  const existingContent = fs.existsSync(destPath)
-    ? fs.readFileSync(destPath, "utf-8")
-    : "";
-  const updatedContent = existingContent.replace(SKILL, "");
-  if (updatedContent.trim() === "") {
-    fs.unlinkSync(destPath);
-  } else {
-    fs.writeFileSync(destPath, updatedContent);
+  if (fs.existsSync(destPath)) {
+    const existingContent = fs.readFileSync(destPath, "utf-8");
+    const updatedContent = existingContent.replace(SKILL, "");
+    if (updatedContent.trim() === "") {
+      fs.unlinkSync(destPath);
+    } else {
+      fs.writeFileSync(destPath, updatedContent);
+    }
   }
   console.log("Successfully removed the mgrep from the Codex agent");
 }
