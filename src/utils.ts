@@ -29,18 +29,11 @@ export function computeFileHash(
 }
 
 export function isDevelopment(): boolean {
-  // Check if running from node_modules (published package)
-  if (__dirname.includes("node_modules")) {
-    return false;
-  }
-
-  // Check if NODE_ENV is set to development
   if (process.env.NODE_ENV === "development" || isTest) {
     return true;
   }
 
-  // Default to local if we can't determine
-  return true;
+  return false;
 }
 
 export async function listStoreFileHashes(

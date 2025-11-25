@@ -223,7 +223,9 @@ pnpm format       # biome formatting + linting
 
 - The executable lives at `dist/index.js` (built from TypeScript via `tsc`).
 - Husky is wired via `pnpx husky init` (run `npx husky init` once after cloning).
-- Tests are not wired up yet—`pnpm typecheck` is your best friend before publishing.
+- Tests are not wired up yet—`pnpm typecheck` is your best friend before
+  publishing.
+- To connect to a local Mixedbread api set the `export NODE_ENV=development`.
 
 ### Testing
 
