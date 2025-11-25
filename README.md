@@ -12,16 +12,13 @@
 ## Why mgrep?
 - Natural-language search that feels as immediate as `grep`.
 - Semantic, multilingual & multimodal (audio, video support coming soon!)
-- Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
+- Automatic background indexing that starts lazily on first search, keeping everything up-to-date inside any git repository.
 - Friendly device-login flow and first-class coding agent integrations.
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
 - Reduces the token usage of your agent by 2x while maintaining superior performance
 
 ```bash
-# index once
-mgrep watch
-
-# then ask your repo things in natural language
+# just ask your repo things in natural language
 mgrep "where do we set up auth?"
 ```
 
@@ -45,28 +42,22 @@ mgrep "where do we set up auth?"
    ```
    This bypasses the browser login flow entirely.
 
-3. **Index a project**
+3. **Search anything**
    ```bash
    cd path/to/repo
-   mgrep watch
-   ```
-   `watch` performs an initial sync, respects `.gitignore`, then keeps the Mixedbread store updated as files change.
-
-4. **Search anything**
-   ```bash
    mgrep "where do we set up auth?" src/lib
    mgrep -m 25 "store schema"
    ```
-   Searches default to the current working directory unless you pass a path.
+   On first search, mgrep automatically starts a background daemon that indexes your files and keeps them in sync. Searches default to the current working directory unless you pass a path.
 
 **Today, `mgrep` works great on:** code, text, PDFs, images.  
 **Coming soon:** audio & video.
 
 ## Using it with Coding Agents
 
-- **Claude Code (today)**  
-  1. Run `mgrep install-claude-code`. The command signs you in (if needed), adds the Mixedbread mgrep plugin to the marketplace, and installs it.  
-  2. Open Claude Code, enable the plugin, and point your agent at the repo you are indexing with `mgrep watch`.  
+- **Claude Code (today)**
+  1. Run `mgrep install-claude-code`. The command signs you in (if needed), adds the Mixedbread mgrep plugin to the marketplace, and installs it.
+  2. Open Claude Code, enable the plugin, and point your agent at your repo.
   3. Ask Claude something just like you do locally; results stream straight into the chat with file paths and line hints.  
   
 - More agents (Codex, Cursor, Windsurf, etc.) are on the way—this section will grow as soon as each integration lands.
@@ -110,8 +101,10 @@ We designed `mgrep` to complement `grep`, not replace it. The best code search c
 
 | Command | Purpose |
 | --- | --- |
-| `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). |
-| `mgrep watch` | Index current repo and keep the Mixedbread store in sync via file watchers. |
+| `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). Automatically starts background indexing on first use. |
+| `mgrep watch` | Manually start file watching (usually not needed - starts automatically on search). |
+| `mgrep daemon:list` | List all running background daemons. |
+| `mgrep daemon:stop [dir]` | Stop the daemon for a directory (defaults to current directory). |
 | `mgrep login` & `mgrep logout` | Manage device-based authentication with Mixedbread. |
 | `mgrep install-claude-code` | Log in, add the Mixedbread mgrep plugin to Claude Code, and install it for you. |
 
@@ -142,16 +135,22 @@ mgrep -a "What code parsers are available?"  # generate an answer to the questio
 
 ### mgrep watch
 
-`mgrep watch` is used to index the current repository and keep the Mixedbread
-store in sync via file watchers.
+`mgrep watch` manually starts the file watcher daemon. This is usually not
+needed since `mgrep search` automatically starts a daemon on first use.
 
-It respects the current `.gitignore`, as well as a `.mgrepignore` file in the
-root of the repository. The `.mgrepignore` file follows the same syntax as the
-[`.gitignore`](https://git-scm.com/docs/gitignore) file.
+The daemon respects `.gitignore` as well as `.mgrepignore` files (same syntax as
+[`.gitignore`](https://git-scm.com/docs/gitignore)).
 
-**Examples:**
+### Daemon Management
+
+mgrep automatically manages background daemons with hierarchy awareness:
+- Running `mgrep` in a subdirectory reuses the parent directory's daemon if one exists
+- Running `mgrep` in a parent directory consolidates child daemons into one
+
 ```bash
-mgrep watch  # index the current repository and keep the Mixedbread store in sync via file watchers
+mgrep daemon:list              # show all running daemons
+mgrep daemon:stop              # stop daemon for current directory
+mgrep daemon:stop /path/to/dir # stop daemon for specific directory
 ```
 
 ## Mixedbread under the hood
@@ -167,7 +166,7 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 
 - `--store <name>` lets you isolate workspaces (per repo, per team, per experiment). Stores are created on demand if they do not exist yet.
 - Ignore rules come straight from git, so temp files, build outputs, and vendored deps stay out of your embeddings.
-- `watch` reports progress (`processed / uploaded`) as it scans; leave it running in a terminal tab to keep your store fresh.
+- The background daemon reports progress as it scans and keeps your store fresh automatically.
 - `search` accepts most `grep`-style switches, and politely ignores anything it cannot support, so existing muscle memory still works.
 
 ## Environment Variables
@@ -236,7 +235,7 @@ The tests are written using [bats](https://bats-core.readthedocs.io/en/stable/).
 ## Troubleshooting
 
 - **Login keeps reopening**: run `mgrep logout` to clear cached tokens, then try `mgrep login` again.
-- **Watcher feels noisy**: set `MXBAI_STORE` or pass `--store` to separate experiments, or pause the watcher and restart after large refactors.
+- **Daemon feels noisy**: use `mgrep daemon:stop` to stop it, or set `MXBAI_STORE` / `--store` to separate experiments.
 - **Need a fresh store**: delete it from the Mixedbread dashboard, then run `mgrep watch`. It will auto-create a new one.
 
 ## License

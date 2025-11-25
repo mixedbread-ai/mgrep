@@ -2,6 +2,7 @@ import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand } from "commander";
 import { createFileSystem, createStore } from "../lib/context";
+import { ensureDaemon } from "../lib/daemon";
 import type {
   AskResponse,
   ChunkType,
@@ -164,6 +165,10 @@ export const search: Command = new CommanderCommand("search")
     try {
       const store = await createStore();
       const root = process.cwd();
+
+      if (!options.sync) {
+        ensureDaemon(options.store, root);
+      }
 
       if (options.sync) {
         const fileSystem = createFileSystem({

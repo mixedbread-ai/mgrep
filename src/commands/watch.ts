@@ -67,6 +67,11 @@ export const watch = new Command("watch")
         throw e;
       }
 
+      process.on("SIGTERM", () => {
+        console.log("Daemon received SIGTERM, shutting down");
+        process.exit(0);
+      });
+
       console.log("Watching for file changes in", watchRoot);
       fileSystem.loadMgrepignore(watchRoot);
       fs.watch(watchRoot, { recursive: true }, (eventType, rawFilename) => {
