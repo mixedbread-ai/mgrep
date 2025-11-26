@@ -238,3 +238,36 @@ teardown() {
     refute_output --partial 'model.safetensors'
     refute_output --partial 'binaryfile.bin'
 }
+
+@test "Search with stdin pipe" {
+    run bash -c 'echo "Hello stdin content for testing" | mgrep search "stdin"'
+
+    assert_success
+    assert_output --partial '<stdin>'
+}
+
+@test "Search stdin with answer mode" {
+    run bash -c 'echo "Hello stdin content" | mgrep search -a "what is this?"'
+
+    assert_success
+    assert_output --partial 'Stdin content indexed'
+    assert_output --partial 'mock answer'
+}
+
+@test "Search stdin with content mode" {
+    run bash -c 'echo "Hello stdin unique content" | mgrep search -c "unique"'
+
+    assert_success
+    assert_output --partial '<stdin>'
+    assert_output --partial 'Hello stdin unique content'
+}
+
+@test "Empty stdin is treated as no stdin" {
+    # Empty stdin (echo -n "") is treated as no stdin input
+    # so the command proceeds with normal file search
+    run bash -c 'echo -n "" | mgrep search "test"'
+
+    assert_success
+    # Should search existing files, not stdin
+    assert_output --partial 'test.txt'
+}
