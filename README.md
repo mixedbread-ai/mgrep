@@ -119,9 +119,9 @@ We designed `mgrep` to complement `grep`, not replace it. The best code search c
 | `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). |
 | `mgrep watch` | Index current repo and keep the Mixedbread store in sync via file watchers. |
 | `mgrep login` & `mgrep logout` | Manage device-based authentication with Mixedbread. |
-| `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code marketplace, and install it. |
-| `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep plugin to OpenCode. |
-| `mgrep install-codex` | Authenticate and add the Mixedbread mgrep plugin to Codex marketplace. |
+| `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code. |
+| `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep to OpenCode. |
+| `mgrep install-codex` | Authenticate and add the Mixedbread mgrep to Codex. |
 
 ### mgrep search
 
