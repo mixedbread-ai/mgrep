@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import winston from "winston";
@@ -13,19 +14,36 @@ export function getLogDir(appName = "myapp") {
 
 const LOG_DIR = getLogDir("mgrep");
 
-export function setupLogger() {
-  const transport = new DailyRotateFile({
-    dirname: LOG_DIR,
-    filename: "%DATE%.log",
-    datePattern: "YYYY-MM-DD",
-    zippedArchive: false,
-    maxSize: "20m",
-    maxFiles: "31d",
-  });
+function canWriteToDir(dir: string): boolean {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const testFile = path.join(dir, ".write-test");
+    fs.writeFileSync(testFile, "");
+    fs.unlinkSync(testFile);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  // Winston logger instance with timestamps + rotation
+export function setupLogger() {
+  const transports: winston.transport[] = [];
+
+  if (canWriteToDir(LOG_DIR)) {
+    const fileTransport = new DailyRotateFile({
+      dirname: LOG_DIR,
+      filename: "%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      zippedArchive: false,
+      maxSize: "20m",
+      maxFiles: "31d",
+    });
+    transports.push(fileTransport);
+  }
+
   const logger = winston.createLogger({
     level: "info",
+    silent: transports.length === 0,
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.printf(
@@ -33,7 +51,7 @@ export function setupLogger() {
           `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`,
       ),
     ),
-    transports: [transport],
+    transports,
   });
 
   const originalConsoleLog = console.log;
