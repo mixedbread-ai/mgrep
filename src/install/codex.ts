@@ -56,6 +56,7 @@ async function installPlugin() {
       shell,
       env: process.env,
     });
+    console.log("Successfully installed the mgrep background sync");
 
     const destPath = path.join(os.homedir(), ".codex", "AGENTS.md");
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
