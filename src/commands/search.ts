@@ -1,6 +1,7 @@
 import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand } from "commander";
+import ora from "ora";
 import { createFileSystem, createStore } from "../lib/context";
 import type {
   AskResponse,
@@ -12,7 +13,12 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { initialSync } from "../utils";
+import {
+  computeBufferHash,
+  initialSync,
+  tryReadStdin,
+  uploadBuffer,
+} from "../utils";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};
@@ -70,8 +76,13 @@ function formatSearchResponse(response: SearchResponse, show_content: boolean) {
 
 function formatChunk(chunk: ChunkType, show_content: boolean) {
   const pwd = process.cwd();
-  const path =
-    (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
+  const rawPath =
+    (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
+
+  // Display <stdin> for stdin paths, otherwise show relative path
+  const path = rawPath.startsWith("__stdin__/")
+    ? "<stdin>"
+    : rawPath.replace(pwd, "");
   let line_range = "";
   let content = "";
   switch (chunk.type) {
@@ -165,7 +176,40 @@ export const search: Command = new CommanderCommand("search")
       const store = await createStore();
       const root = process.cwd();
 
-      if (options.sync) {
+      // Try to read stdin (returns null if no data available)
+      const stdinBuffer = await tryReadStdin();
+      const isStdinMode = stdinBuffer !== null;
+      let stdinPath: string | null = null;
+
+      if (isStdinMode) {
+        if (stdinBuffer.length === 0) {
+          console.error("Stdin is empty");
+          process.exitCode = 1;
+          return;
+        }
+
+        // Use hash-based path for caching
+        const hash = computeBufferHash(stdinBuffer);
+        stdinPath = `__stdin__/${hash.substring(0, 12)}`;
+
+        // Upload stdin content
+        const spinner = ora("Uploading stdin content...").start();
+        await uploadBuffer(store, options.store, stdinBuffer, stdinPath);
+
+        // Wait for indexing
+        spinner.text = "Indexing stdin content...";
+        while (true) {
+          const info = await store.getInfo(options.store);
+          if (info.counts.pending === 0 && info.counts.in_progress === 0) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+        spinner.succeed("Stdin content indexed");
+      }
+
+      // Skip normal --sync when in stdin mode (stdin already synced)
+      if (options.sync && !isStdinMode) {
         const fileSystem = createFileSystem({
           ignorePatterns: [
             "*.lock",
@@ -203,9 +247,13 @@ export const search: Command = new CommanderCommand("search")
         }
       }
 
-      const search_path = exec_path?.startsWith("/")
-        ? exec_path
-        : normalize(join(root, exec_path ?? ""));
+      // Use stdinPath when in stdin mode, otherwise use exec_path
+      const search_path =
+        isStdinMode && stdinPath
+          ? stdinPath
+          : exec_path?.startsWith("/")
+            ? exec_path
+            : normalize(join(root, exec_path ?? ""));
 
       let response: string;
       if (!options.answer) {

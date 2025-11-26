@@ -16,6 +16,86 @@ import { getStoredToken } from "./token";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 
+/**
+ * Reads stdin if data is available (non-blocking check + read)
+ * Returns null if stdin is a TTY or no data is available
+ */
+export async function tryReadStdin(): Promise<Buffer | null> {
+  // If stdin is a TTY (interactive terminal), no piped data
+  if (process.stdin.isTTY) {
+    return null;
+  }
+
+  const chunks: Buffer[] = [];
+
+  return new Promise((resolve) => {
+    // Set a short timeout to check if data is available
+    // If no data arrives quickly, assume no stdin data
+    const timeout = setTimeout(() => {
+      process.stdin.removeAllListeners();
+      process.stdin.pause();
+      if (chunks.length === 0) {
+        resolve(null);
+      } else {
+        resolve(Buffer.concat(chunks));
+      }
+    }, 100);
+
+    process.stdin.on("data", (chunk) => {
+      clearTimeout(timeout);
+      chunks.push(Buffer.from(chunk));
+    });
+
+    process.stdin.on("end", () => {
+      clearTimeout(timeout);
+      if (chunks.length === 0) {
+        resolve(null);
+      } else {
+        resolve(Buffer.concat(chunks));
+      }
+    });
+
+    process.stdin.on("error", () => {
+      clearTimeout(timeout);
+      resolve(null);
+    });
+
+    // Start reading
+    process.stdin.resume();
+  });
+}
+
+/**
+ * Uploads a buffer directly to the store
+ */
+export async function uploadBuffer(
+  store: Store,
+  storeId: string,
+  buffer: Buffer,
+  externalId: string,
+): Promise<boolean> {
+  if (buffer.length === 0) {
+    return false;
+  }
+
+  const hash = computeBufferHash(buffer);
+  const options = {
+    external_id: externalId,
+    overwrite: true,
+    metadata: {
+      path: externalId,
+      hash,
+    },
+  };
+
+  await store.uploadFile(
+    storeId,
+    new File([new Uint8Array(buffer)], "stdin.txt", { type: "text/plain" }),
+    options,
+  );
+  return true;
+}
+
 export function computeBufferHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
