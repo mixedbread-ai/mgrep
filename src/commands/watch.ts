@@ -6,7 +6,7 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { initialSync, uploadFile } from "../utils";
+import { deleteFile, initialSync, uploadFile } from "../utils";
 
 export async function startWatch(options: {
   store: string;
@@ -39,8 +39,10 @@ export async function startWatch(options: {
         options.dryRun,
         onProgress,
       );
+      const deletedInfo =
+        result.deleted > 0 ? ` • deleted ${result.deleted}` : "";
       spinner.succeed(
-        `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}`,
+        `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}${deletedInfo}`,
       );
       if (options.dryRun) {
         console.log(
@@ -64,24 +66,30 @@ export async function startWatch(options: {
         return;
       }
       const filePath = path.join(watchRoot, filename);
-      console.log(`${eventType}: ${filePath}`);
-
-      try {
-        const stat = fs.statSync(filePath);
-        if (!stat.isFile()) {
-          return;
-        }
-      } catch {
-        return;
-      }
 
       if (fileSystem.isIgnored(filePath, watchRoot)) {
         return;
       }
 
-      uploadFile(store, options.store, filePath, filename).catch((err) => {
-        console.error("Failed to upload changed file:", filePath, err);
-      });
+      let fileExists = false;
+      try {
+        const stat = fs.statSync(filePath);
+        fileExists = stat.isFile();
+      } catch {
+        fileExists = false;
+      }
+
+      if (fileExists) {
+        console.log(`${eventType}: ${filePath}`);
+        uploadFile(store, options.store, filePath, filename).catch((err) => {
+          console.error("Failed to upload changed file:", filePath, err);
+        });
+      } else if (filePath.startsWith(watchRoot)) {
+        console.log(`delete: ${filePath}`);
+        deleteFile(store, options.store, filePath).catch((err) => {
+          console.error("Failed to delete file:", filePath, err);
+        });
+      }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

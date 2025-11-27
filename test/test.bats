@@ -238,3 +238,37 @@ teardown() {
     refute_output --partial 'model.safetensors'
     refute_output --partial 'binaryfile.bin'
 }
+
+@test "Sync deletes files from store that are not present locally" {
+    rm "$BATS_TMPDIR/test-store/test-2.txt"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'would have deleted'
+    assert_output --partial 'test-2.txt'
+    refute_output --partial 'test.txt'
+    refute_output --partial 'test-3.txt'
+}
+
+@test "Search sync deletes files from store that are not present locally" {
+    rm "$BATS_TMPDIR/test-store/test-2.txt"
+    run mgrep search --sync --dry-run test
+
+    assert_success
+    assert_output --partial 'would have deleted'
+    assert_output --partial 'test-2.txt'
+}
+
+@test "Sync only deletes store files within the current path" {
+    mkdir -p "$BATS_TMPDIR/test-store/subdir"
+    echo "Subdir file" > "$BATS_TMPDIR/test-store/subdir/sub.txt"
+    run mgrep search --sync test
+    assert_success
+
+    rm "$BATS_TMPDIR/test-store/test-2.txt"
+    cd "$BATS_TMPDIR/test-store/subdir"
+    run mgrep watch --dry-run
+
+    assert_success
+    refute_output --partial 'test-2.txt'
+}

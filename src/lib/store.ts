@@ -75,6 +75,11 @@ export interface Store {
   ): Promise<void>;
 
   /**
+   * Delete a file from a store by its external ID
+   */
+  deleteFile(storeId: string, externalId: string): Promise<void>;
+
+  /**
    * Search in a store
    */
   search(
@@ -158,6 +163,12 @@ export class MixedbreadStore implements Store {
       external_id: options.external_id,
       overwrite: options.overwrite ?? true,
       metadata: options.metadata,
+    });
+  }
+
+  async deleteFile(storeId: string, externalId: string): Promise<void> {
+    await this.client.stores.files.delete(externalId, {
+      store_identifier: storeId,
     });
   }
 
@@ -351,6 +362,14 @@ export class TestStore implements Store {
         metadata: options.metadata || { path: options.external_id, hash: "" },
         content,
       };
+      await this.save(db);
+    });
+  }
+
+  async deleteFile(_storeId: string, externalId: string): Promise<void> {
+    await this.synchronized(async () => {
+      const db = await this.load();
+      delete db.files[externalId];
       await this.save(db);
     });
   }

@@ -77,6 +77,14 @@ export async function ensureAuthenticated(): Promise<void> {
   await loginAction();
 }
 
+export async function deleteFile(
+  store: Store,
+  storeId: string,
+  filePath: string,
+): Promise<void> {
+  await store.deleteFile(storeId, filePath);
+}
+
 export async function uploadFile(
   store: Store,
   storeId: string,
@@ -130,15 +138,22 @@ export async function initialSync(
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
   );
-  const total = repoFiles.length;
+  const repoFileSet = new Set(repoFiles);
+
+  const filesToDelete = Array.from(storeHashes.keys()).filter(
+    (filePath) => filePath.startsWith(repoRoot) && !repoFileSet.has(filePath),
+  );
+
+  const total = repoFiles.length + filesToDelete.length;
   let processed = 0;
   let uploaded = 0;
+  let deleted = 0;
 
   const concurrency = 100;
   const limit = pLimit(concurrency);
 
-  await Promise.all(
-    repoFiles.map((filePath) =>
+  await Promise.all([
+    ...repoFiles.map((filePath) =>
       limit(async () => {
         try {
           const buffer = await fs.promises.readFile(filePath);
@@ -160,12 +175,29 @@ export async function initialSync(
               uploaded += 1;
             }
           }
-          onProgress?.({ processed, uploaded, total, filePath });
+          onProgress?.({ processed, uploaded, deleted, total, filePath });
         } catch (_err) {
-          onProgress?.({ processed, uploaded, total, filePath });
+          onProgress?.({ processed, uploaded, deleted, total, filePath });
         }
       }),
     ),
-  );
-  return { processed, uploaded, total };
+    ...filesToDelete.map((filePath) =>
+      limit(async () => {
+        try {
+          if (dryRun) {
+            console.log("Dry run: would have deleted", filePath);
+          } else {
+            await store.deleteFile(storeId, filePath);
+          }
+          deleted += 1;
+          processed += 1;
+          onProgress?.({ processed, uploaded, deleted, total, filePath });
+        } catch (_err) {
+          processed += 1;
+          onProgress?.({ processed, uploaded, deleted, total, filePath });
+        }
+      }),
+    ),
+  ]);
+  return { processed, uploaded, deleted, total };
 }

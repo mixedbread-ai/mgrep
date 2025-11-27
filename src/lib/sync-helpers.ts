@@ -9,6 +9,7 @@ interface IndexingSpinner {
 export interface InitialSyncProgress {
   processed: number;
   uploaded: number;
+  deleted: number;
   total: number;
   filePath?: string;
 }
@@ -16,6 +17,7 @@ export interface InitialSyncProgress {
 export interface InitialSyncResult {
   processed: number;
   uploaded: number;
+  deleted: number;
   total: number;
 }
 
@@ -52,7 +54,8 @@ export function createIndexingSpinner(
     onProgress(info) {
       const rel = formatRelativePath(root, info.filePath);
       const suffix = rel ? ` ${rel}` : "";
-      spinner.text = `Indexing files (${info.processed}/${info.total}) • uploaded ${info.uploaded}${suffix}`;
+      const deletedInfo = info.deleted > 0 ? ` • deleted ${info.deleted}` : "";
+      spinner.text = `Indexing files (${info.processed}/${info.total}) • uploaded ${info.uploaded}${deletedInfo}${suffix}`;
     },
   };
 }
@@ -73,5 +76,7 @@ export function formatDryRunSummary(
   }: { actionDescription: string; includeTotal?: boolean },
 ): string {
   const totalSuffix = includeTotal ? " in total" : "";
-  return `Dry run: ${actionDescription} ${result.processed} files${totalSuffix}, would have uploaded ${result.uploaded} changed or new files`;
+  const deletedSuffix =
+    result.deleted > 0 ? `, would have deleted ${result.deleted} files` : "";
+  return `Dry run: ${actionDescription} ${result.processed} files${totalSuffix}, would have uploaded ${result.uploaded} changed or new files${deletedSuffix}`;
 }
