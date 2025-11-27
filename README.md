@@ -68,6 +68,7 @@ mgrep "where do we set up auth?"
 - `mgrep install-claude-code` for Claude Code
 - `mgrep install-opencode` for OpenCode
 - `mgrep install-codex` for Codex
+- `mgrep install-droid` for Factory Droid
 
 These commands sign you in (if needed) and add Mixedbread `mgrep` support to the
 agent. After that you only have to start the agent in your project folder, thats
@@ -122,6 +123,7 @@ We designed `mgrep` to complement `grep`, not replace it. The best code search c
 | `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code. |
 | `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep to OpenCode. |
 | `mgrep install-codex` | Authenticate and add the Mixedbread mgrep to Codex. |
+| `mgrep install-droid` | Authenticate and add the Mixedbread mgrep hooks/skills to Factory Droid. |
 
 ### mgrep search
 
