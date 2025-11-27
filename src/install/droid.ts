@@ -179,15 +179,23 @@ async function uninstallPlugin() {
         typeof settings.hooks === "object" &&
         !Array.isArray(settings.hooks)
       ) {
-        const removeCommand = (cmd: string) => {
-          for (const event of Object.keys(settings.hooks)) {
-            settings.hooks[event] = (settings.hooks[event] as any[]).filter(
-              (entry: any) => entry?.hooks?.[0]?.command !== cmd,
-            );
+        for (const event of Object.keys(settings.hooks)) {
+          const filtered = (settings.hooks[event] as any[]).filter(
+            (entry: any) =>
+              entry?.hooks?.[0]?.command !==
+                `python3 "${path.join(hooksDir, "mgrep_watch.py")}"` &&
+              entry?.hooks?.[0]?.command !==
+                `python3 "${path.join(hooksDir, "mgrep_watch_kill.py")}"`,
+          );
+          if (filtered.length === 0) {
+            delete settings.hooks[event];
+          } else {
+            settings.hooks[event] = filtered;
           }
-        };
-        removeCommand(`python3 "${path.join(hooksDir, "mgrep_watch.py")}"`);
-        removeCommand(`python3 "${path.join(hooksDir, "mgrep_watch_kill.py")}"`);
+        }
+        if (Object.keys(settings.hooks).length === 0) {
+          delete settings.hooks;
+        }
         saveSettings(settingsPath, settings as Record<string, unknown>);
       }
     } catch (error) {
