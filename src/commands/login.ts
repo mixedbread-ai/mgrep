@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
-import { authClient } from "../lib/auth";
+import { authClient, SERVER_URL } from "../lib/auth";
 import { getStoredToken, pollForToken, storeToken } from "../token";
 
 const CLIENT_ID = "mgrep";
@@ -44,23 +44,16 @@ export async function loginAction() {
       process.exit(1);
     }
 
-    const {
-      device_code,
-      user_code,
-      verification_uri,
-      verification_uri_complete,
-      interval = 5,
-      expires_in,
-    } = data;
+    const { device_code, user_code, interval = 5, expires_in } = data;
+
+    const urlToOpen = `${SERVER_URL}/select-organization?user_code=${user_code}`;
 
     // Display authorization instructions
     console.log("");
     console.log(chalk.cyan("📱 Device Authorization Required"));
     console.log("");
     console.log("Login to your Mixedbread platform account, then:");
-    console.log(
-      `Please visit: ${chalk.underline.blue(`${verification_uri}?user_code=${user_code}`)}`,
-    );
+    console.log(`Please visit: ${chalk.underline.blue(urlToOpen)}`);
     console.log(`Enter code: ${chalk.bold.green(user_code)}`);
     console.log("");
 
@@ -71,7 +64,6 @@ export async function loginAction() {
     });
 
     if (!isCancel(shouldOpen) && shouldOpen) {
-      const urlToOpen = verification_uri_complete || verification_uri;
       await open(urlToOpen);
     }
 
