@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { Command } from "commander";
 import { createFileSystem, createStore } from "../lib/context";
+import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -15,7 +16,7 @@ export async function startWatch(options: {
   try {
     const store = await createStore();
     const fileSystem = createFileSystem({
-      ignorePatterns: ["*.lock", "*.bin", "*.ipynb", "*.pyc", "*.safetensors"],
+      ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
     });
     const watchRoot = process.cwd();
     console.debug("Watching for file changes in", watchRoot);

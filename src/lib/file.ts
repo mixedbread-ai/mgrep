@@ -4,6 +4,20 @@ import ignore from "ignore";
 import type { Git } from "./git";
 
 /**
+ * Default glob patterns to ignore during file indexing.
+ * These are not recognized as binary and also can't be uploaded to Mixedbread.
+ */
+export const DEFAULT_IGNORE_PATTERNS: readonly string[] = [
+  "*.lock",
+  "*.bin",
+  "*.ipynb",
+  "*.pyc",
+  "*.safetensors",
+  "*.sqlite",
+  "*.pt",
+];
+
+/**
  * Configuration options for file system operations
  */
 export interface FileSystemOptions {

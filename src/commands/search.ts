@@ -2,6 +2,7 @@ import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand } from "commander";
 import { createFileSystem, createStore } from "../lib/context";
+import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
 import type {
   AskResponse,
   ChunkType,
@@ -167,13 +168,7 @@ export const search: Command = new CommanderCommand("search")
 
       if (options.sync) {
         const fileSystem = createFileSystem({
-          ignorePatterns: [
-            "*.lock",
-            "*.bin",
-            "*.ipynb",
-            "*.pyc",
-            "*.safetensors",
-          ],
+          ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
         });
         const { spinner, onProgress } = createIndexingSpinner(root);
         const result = await initialSync(
