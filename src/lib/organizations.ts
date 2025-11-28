@@ -1,6 +1,21 @@
 import { cancel, isCancel, select } from "@clack/prompts";
 import type { Organization } from "better-auth/plugins/organization";
+import chalk from "chalk";
 import { authClient, SERVER_URL } from "./auth";
+
+export async function getCurrentOrganization(accessToken: string) {
+  const { data: session } = await authClient.getSession({
+    fetchOptions: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+
+  return session?.session?.activeOrganizationId
+    ? { id: session.session.activeOrganizationId }
+    : null;
+}
 
 export async function listOrganizations(accessToken: string) {
   const response = await fetch(`${SERVER_URL}/api/auth/organization/list`, {
@@ -14,7 +29,10 @@ export async function listOrganizations(accessToken: string) {
   return organizations;
 }
 
-export async function selectOrganization(accessToken: string) {
+export async function selectOrganization(
+  accessToken: string,
+  currentOrgId?: string | null,
+) {
   const organizations = await listOrganizations(accessToken);
 
   let selectedOrg: Organization;
@@ -29,7 +47,10 @@ export async function selectOrganization(accessToken: string) {
       message: "Select an organization",
       options: organizations.map((org) => ({
         value: org.id,
-        label: `${org.name} (${org.slug})`,
+        label:
+          org.id === currentOrgId
+            ? `${org.name} (${org.slug}) ${chalk.dim("(current)")}`
+            : `${org.name} (${org.slug})`,
       })),
     });
 

@@ -5,6 +5,7 @@ import { program } from "commander";
 import { login } from "./commands/login";
 import { logout } from "./commands/logout";
 import { search } from "./commands/search";
+import { switchOrg } from "./commands/switch-org";
 import { watch } from "./commands/watch";
 import { watchMcp } from "./commands/watch_mcp";
 import { installClaudeCode, uninstallClaudeCode } from "./install/claude-code";
@@ -41,6 +42,7 @@ program.addCommand(installOpencode);
 program.addCommand(uninstallOpencode);
 program.addCommand(login);
 program.addCommand(logout);
+program.addCommand(switchOrg);
 program.addCommand(watchMcp);
 
 program.parse();
