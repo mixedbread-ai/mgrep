@@ -4,13 +4,10 @@ import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
-import { loginAction } from "./commands/login";
-import type { FileSystem } from "./lib/file";
-import type { Store } from "./lib/store";
-import type {
-  InitialSyncProgress,
-  InitialSyncResult,
-} from "./lib/sync-helpers";
+import { loginAction } from "../commands/login";
+import type { FileSystem } from "./file";
+import type { Store } from "./store";
+import type { InitialSyncProgress, InitialSyncResult } from "./sync-helpers";
 
 import { getStoredToken } from "./token";
 

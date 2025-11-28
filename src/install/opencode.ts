@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
-import { ensureAuthenticated } from "../utils";
+import { ensureAuthenticated } from "../lib/utils";
 
 const TOOL_PATH = path.join(
   os.homedir(),

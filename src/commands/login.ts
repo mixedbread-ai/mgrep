@@ -4,7 +4,8 @@ import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
 import { authClient } from "../lib/auth";
-import { getStoredToken, pollForToken, storeToken } from "../token";
+import { selectOrganization } from "../lib/organizations";
+import { getStoredToken, pollForToken, storeToken } from "../lib/token";
 
 const CLIENT_ID = "mgrep";
 
@@ -59,7 +60,7 @@ export async function loginAction() {
     console.log("");
     console.log("Login to your Mixedbread platform account, then:");
     console.log(
-      `Please visit: ${chalk.underline.blue(`${verification_uri}?user_code=${user_code}`)}`,
+      `Please visit: ${chalk.underline.blue(verification_uri_complete)}`,
     );
     console.log(`Enter code: ${chalk.bold.green(user_code)}`);
     console.log("");
@@ -91,6 +92,8 @@ export async function loginAction() {
     );
 
     if (token) {
+      const selectedOrg = await selectOrganization(token.access_token);
+
       await storeToken(token);
 
       // Get user info
@@ -106,7 +109,7 @@ export async function loginAction() {
 
       outro(
         chalk.green(
-          `✅ Mixedbread platform login successful! ${userIdentifier ? `Logged in as ${userIdentifier}.` : ""}`,
+          `✅ Mixedbread platform login successful!${userIdentifier ? ` Logged in as ${chalk.bold(userIdentifier)}` : ""}${selectedOrg ? ` (${chalk.bold(selectedOrg.name)})` : ""}.`,
         ),
       );
     }

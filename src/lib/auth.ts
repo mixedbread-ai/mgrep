@@ -1,7 +1,10 @@
 import { createAuthClient } from "better-auth/client";
-import { deviceAuthorizationClient } from "better-auth/client/plugins";
-import { getStoredToken } from "../token";
-import { isDevelopment } from "../utils";
+import {
+  deviceAuthorizationClient,
+  organizationClient,
+} from "better-auth/client/plugins";
+import { getStoredToken } from "./token";
+import { isDevelopment } from "./utils";
 
 export const SERVER_URL = isDevelopment()
   ? "http://localhost:3001"
@@ -9,7 +12,7 @@ export const SERVER_URL = isDevelopment()
 
 export const authClient = createAuthClient({
   baseURL: SERVER_URL,
-  plugins: [deviceAuthorizationClient()],
+  plugins: [deviceAuthorizationClient(), organizationClient()],
 });
 
 export type AuthClient = typeof authClient;

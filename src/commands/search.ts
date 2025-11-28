@@ -13,7 +13,7 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { initialSync } from "../utils";
+import { initialSync } from "../lib/utils";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};

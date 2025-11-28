@@ -1,5 +1,4 @@
 import Mixedbread from "@mixedbread/sdk";
-import { ensureAuthenticated, isDevelopment, isTest } from "../utils";
 import { getJWTToken } from "./auth";
 import {
   type FileSystem,
@@ -8,6 +7,7 @@ import {
 } from "./file";
 import { type Git, NodeGit } from "./git";
 import { MixedbreadStore, type Store, TestStore } from "./store";
+import { ensureAuthenticated, isDevelopment, isTest } from "./utils";
 
 const BASE_URL = isDevelopment()
   ? "http://localhost:8000"

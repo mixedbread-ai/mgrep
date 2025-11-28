@@ -7,7 +7,7 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { deleteFile, initialSync, uploadFile } from "../utils";
+import { deleteFile, initialSync, uploadFile } from "../lib/utils";
 
 export async function startWatch(options: {
   store: string;
