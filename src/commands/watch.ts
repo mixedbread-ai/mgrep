@@ -16,12 +16,11 @@ export async function startWatch(options: {
   try {
     const store = await createStore();
 
-    // Refresh JWT token every 14 minutes (before 15-minute expiration)
-    const REFRESH_INTERVAL = 14 * 60 * 1000;
+    // Refresh JWT token every 5 minutes (before 15-minute expiration)
+    const REFRESH_INTERVAL = 5 * 60 * 1000;
     setInterval(async () => {
       try {
         await store.refreshClient?.();
-        console.debug("JWT token refreshed");
       } catch (err) {
         console.error(
           "Failed to refresh JWT token:",
