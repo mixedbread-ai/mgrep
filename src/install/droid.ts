@@ -8,16 +8,35 @@ const PLUGIN_ROOT =
   process.env.DROID_PLUGIN_ROOT ||
   path.resolve(__dirname, "../../plugins/mgrep");
 const PLUGIN_HOOKS_DIR = path.join(PLUGIN_ROOT, "hooks");
-const PLUGIN_SKILL_PATH = path.join(
-  PLUGIN_ROOT,
-  "skills",
-  "mgrep",
-  "SKILL.md",
-);
+const PLUGIN_SKILL_PATH = path.join(PLUGIN_ROOT, "skills", "mgrep", "SKILL.md");
+
+type HookCommand = {
+  type: "command";
+  command: string;
+  timeout: number;
+};
+
+type HookEntry = {
+  matcher?: string | null;
+  hooks: HookCommand[];
+};
+
+type HooksConfig = Record<string, HookEntry[]>;
+
+type Settings = {
+  hooks?: HooksConfig;
+  enableHooks?: boolean;
+  allowBackgroundProcesses?: boolean;
+} & Record<string, unknown>;
 
 function resolveDroidRoot(): string {
   const root = path.join(os.homedir(), ".factory");
-  return fs.existsSync(root) ? root : root;
+  if (!fs.existsSync(root)) {
+    throw new Error(
+      `Factory Droid directory not found at ${root}. Start Factory Droid once to initialize it, then re-run the install.`,
+    );
+  }
+  return root;
 }
 
 function writeFileIfChanged(filePath: string, content: string): void {
@@ -37,20 +56,25 @@ function readPluginAsset(assetPath: string): string {
   return fs.readFileSync(assetPath, "utf-8");
 }
 
-function parseJsonWithComments(content: string): any {
+function parseJsonWithComments(content: string): Record<string, unknown> {
   const stripped = content
     .split("\n")
     .map((line) => line.replace(/^\s*\/\/.*$/, ""))
     .join("\n");
-  return JSON.parse(stripped);
+  const parsed: unknown = JSON.parse(stripped);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Factory Droid settings must be a JSON object");
+  }
+  return parsed as Record<string, unknown>;
 }
 
-function loadSettings(settingsPath: string): Record<string, unknown> {
+function loadSettings(settingsPath: string): Settings {
   if (!fs.existsSync(settingsPath)) {
     return {};
   }
   const raw = fs.readFileSync(settingsPath, "utf-8");
-  return parseJsonWithComments(raw);
+  const parsed = parseJsonWithComments(raw);
+  return parsed as Settings;
 }
 
 function saveSettings(
@@ -61,21 +85,31 @@ function saveSettings(
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
+function isHooksConfig(value: unknown): value is HooksConfig {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((entry) => Array.isArray(entry));
+}
+
 function mergeHooks(
-  existingHooks: Record<string, any> | undefined,
-  newHooks: Record<string, any>,
-): Record<string, any> {
-  const merged: Record<string, any> = existingHooks
-    ? JSON.parse(JSON.stringify(existingHooks))
+  existingHooks: HooksConfig | undefined,
+  newHooks: HooksConfig,
+): HooksConfig {
+  const merged: HooksConfig = existingHooks
+    ? (JSON.parse(JSON.stringify(existingHooks)) as HooksConfig)
     : {};
   for (const [event, entries] of Object.entries(newHooks)) {
-    const current = Array.isArray(merged[event]) ? merged[event] : [];
-    for (const entry of entries as any[]) {
+    const current: HookEntry[] = Array.isArray(merged[event])
+      ? merged[event]
+      : [];
+    for (const entry of entries) {
       const command = entry?.hooks?.[0]?.command;
       const matcher = entry?.matcher ?? null;
       const duplicate = current.some(
-        (item: any) =>
-          item?.matcher === matcher &&
+        (item) =>
+          (item?.matcher ?? null) === matcher &&
           item?.hooks?.[0]?.command === command &&
           item?.hooks?.[0]?.type === entry?.hooks?.[0]?.type,
       );
@@ -107,7 +141,7 @@ async function installPlugin() {
   writeFileIfChanged(watchPy, watchHook);
   writeFileIfChanged(killPy, killHook);
 
-  const hookConfig = {
+  const hookConfig: HooksConfig = {
     SessionStart: [
       {
         matcher: "startup|resume",
@@ -141,14 +175,14 @@ async function installPlugin() {
   settings.enableHooks = true;
   settings.allowBackgroundProcesses = true;
   settings.hooks = mergeHooks(
-    typeof settings.hooks === "object" && !Array.isArray(settings.hooks)
-      ? (settings.hooks as Record<string, any>)
-      : {},
+    isHooksConfig(settings.hooks) ? settings.hooks : undefined,
     hookConfig,
   );
   saveSettings(settingsPath, settings as Record<string, unknown>);
 
-  console.log(`Installed the mgrep hooks and skill for Factory Droid in ${root}`);
+  console.log(
+    `Installed the mgrep hooks and skill for Factory Droid in ${root}`,
+  );
 }
 
 async function uninstallPlugin() {
@@ -173,27 +207,24 @@ async function uninstallPlugin() {
 
   if (fs.existsSync(settingsPath)) {
     try {
-      const settings = loadSettings(settingsPath) as Record<string, any>;
-      if (
-        settings.hooks &&
-        typeof settings.hooks === "object" &&
-        !Array.isArray(settings.hooks)
-      ) {
-        for (const event of Object.keys(settings.hooks)) {
-          const filtered = (settings.hooks[event] as any[]).filter(
-            (entry: any) =>
+      const settings = loadSettings(settingsPath);
+      const hooks = isHooksConfig(settings.hooks) ? settings.hooks : undefined;
+      if (hooks) {
+        for (const event of Object.keys(hooks)) {
+          const filtered = hooks[event].filter(
+            (entry) =>
               entry?.hooks?.[0]?.command !==
                 `python3 "${path.join(hooksDir, "mgrep_watch.py")}"` &&
               entry?.hooks?.[0]?.command !==
                 `python3 "${path.join(hooksDir, "mgrep_watch_kill.py")}"`,
           );
           if (filtered.length === 0) {
-            delete settings.hooks[event];
+            delete hooks[event];
           } else {
-            settings.hooks[event] = filtered;
+            hooks[event] = filtered;
           }
         }
-        if (Object.keys(settings.hooks).length === 0) {
+        if (Object.keys(hooks).length === 0) {
           delete settings.hooks;
         }
         saveSettings(settingsPath, settings as Record<string, unknown>);
