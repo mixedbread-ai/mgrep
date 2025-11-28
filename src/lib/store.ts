@@ -115,13 +115,28 @@ export interface Store {
    * Get store information
    */
   getInfo(storeId: string): Promise<StoreInfo>;
+
+  /**
+   * Refresh the client with a new JWT token (optional, for long-running sessions)
+   */
+  refreshClient?(): Promise<void>;
 }
 
 /**
  * Mixedbread implementation of the Store interface
  */
 export class MixedbreadStore implements Store {
-  constructor(private client: Mixedbread) {}
+  private client: Mixedbread;
+  private clientFactory: () => Promise<Mixedbread>;
+
+  constructor(client: Mixedbread, clientFactory: () => Promise<Mixedbread>) {
+    this.client = client;
+    this.clientFactory = clientFactory;
+  }
+
+  async refreshClient(): Promise<void> {
+    this.client = await this.clientFactory();
+  }
 
   async *listFiles(storeId: string): AsyncGenerator<StoreFile> {
     let after: string | undefined;
