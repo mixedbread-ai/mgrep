@@ -18,7 +18,7 @@
     "build": "tsc",
     "postbuild": "chmod +x dist/index.js",
     "dev": "npx tsc && node dist/index.js",
-    "test": "bats test/test.bats",
+    "test": "bats test/test.bats --filter-tags !long-running",
     "format": "biome check --write .",
     "format:check": "biome check .",
     "lint": "biome lint --check .",

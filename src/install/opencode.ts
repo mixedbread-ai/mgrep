@@ -103,9 +103,10 @@ async function installPlugin() {
     };
     fs.writeFileSync(MCP_PATH, JSON.stringify(mcpJson, null, 2));
     console.log("Successfully installed the mgrep tool in the OpenCode agent");
-  } catch (error: any) {
-    console.error(`Error installing tool: ${error}`);
-    console.error(error.stack);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error installing tool: ${errorMessage}`);
+    console.error((error as Error)?.stack);
     process.exit(1);
   }
 }

@@ -31,16 +31,16 @@ export const watchMcp = new Command("mcp")
     });
 
     // The MCP server is writing to stdout, so all logs are written to stderr
-    console.log = (...args: any[]) => {
-      process.stderr.write("[LOG] " + args.join(" ") + "\n");
+    console.log = (...args: unknown[]) => {
+      process.stderr.write(`[LOG] ${args.join(" ")}\n`);
     };
 
-    console.error = (...args: any[]) => {
-      process.stderr.write("[ERROR] " + args.join(" ") + "\n");
+    console.error = (...args: unknown[]) => {
+      process.stderr.write(`[ERROR] ${args.join(" ")}\n`);
     };
 
-    console.debug = (...args: any[]) => {
-      process.stderr.write("[DEBUG] " + args.join(" ") + "\n");
+    console.debug = (...args: unknown[]) => {
+      process.stderr.write(`[DEBUG] ${args.join(" ")}\n`);
     };
 
     const options: {

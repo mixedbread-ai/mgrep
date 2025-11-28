@@ -33,7 +33,7 @@ jobs:
         run: pnpm run format:check
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test --filter-tags long-running
 
       - name: Check types
         run: pnpm run typecheck

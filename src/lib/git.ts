@@ -147,7 +147,11 @@ export class NodeGit implements Git {
   *getGitFiles(dirRoot: string): Generator<string> {
     try {
       const run = (args: string[]) => {
-        const res = spawnSync("git", args, { cwd: dirRoot, encoding: "utf-8" });
+        const res = spawnSync("git", args, {
+          cwd: dirRoot,
+          encoding: "utf-8",
+          maxBuffer: 1024 * 1024 * 1024, // 1GB buffer for large repos
+        });
         if (res.error || res.status !== 0) {
           console.error(`Warning: git command failed: git ${args.join(" ")}`);
           return "";

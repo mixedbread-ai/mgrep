@@ -239,6 +239,32 @@ teardown() {
     refute_output --partial 'binaryfile.bin'
 }
 
+# bats test_tags=long-running
+@test "Handles large git repositories with >1MB ls-files output" {
+    rm -rf "$BATS_TMPDIR/large-repo"
+    mkdir -p "$BATS_TMPDIR/large-repo"
+    cd "$BATS_TMPDIR/large-repo"
+    
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    
+    for i in {1..10000}; do
+        dir="very-long-directory-name-that-increases-path-length-significantly/subdir-$i"
+        mkdir -p "$dir"
+        filename="very-long-filename-that-makes-the-git-ls-files-output-large-and-tests-the-buffer-size-limitation-file-number-$i.txt"
+        echo "Content of file $i" > "$dir/$filename"
+    done
+    
+    git add .
+    git commit -m "Initial commit with many files"
+    
+    run mgrep search --sync "Content"
+    
+    assert_success
+    assert [ $(echo "$output" | grep -c "very-long-filename") -gt 0 ]
+}
+
 @test "Sync deletes files from store that are not present locally" {
     rm "$BATS_TMPDIR/test-store/test-2.txt"
     run mgrep watch --dry-run

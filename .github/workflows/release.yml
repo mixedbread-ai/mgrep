@@ -59,7 +59,7 @@ jobs:
         run: pnpm run format:check
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test --filter-tags long-running
 
       - name: Publish to npm
         run: npm publish --access public --provenance
