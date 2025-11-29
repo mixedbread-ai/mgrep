@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "postbuild": "chmod +x dist/index.js",
+    "postbuild": "node -e \"if(process.platform!=='win32')require('child_process').execSync('chmod +x dist/index.js')\"",
     "dev": "npx tsc && node dist/index.js",
     "test": "bats test/test.bats",
     "format": "biome check --write .",

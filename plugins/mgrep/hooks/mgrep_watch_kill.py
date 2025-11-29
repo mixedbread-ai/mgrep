@@ -2,10 +2,12 @@ import os
 import signal
 import sys
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
-DEBUG_LOG_FILE = Path(os.environ.get("MGREP_WATCH_KILL_LOG", "/tmp/mgrep-watch-kill.log"))
+TMP_DIR = Path(os.environ.get("MGREP_TMP", tempfile.gettempdir()))
+DEBUG_LOG_FILE = Path(os.environ.get("MGREP_WATCH_KILL_LOG", TMP_DIR / "mgrep-watch-kill.log"))
 
 
 def debug_log(message: str) -> None:
@@ -29,19 +31,28 @@ def read_hook_input() -> dict[str, object] | None:
         return None
 
 
+def kill_watch(payload: dict[str, object]) -> None:
+    pid_file = TMP_DIR / f"mgrep-watch-pid-{payload.get('session_id')}.txt"
+    if not pid_file.exists():
+        debug_log(f"PID file not found: {pid_file}")
+        sys.exit(1)
+
+    pid = int(pid_file.read_text().strip())
+    debug_log(f"Killing mgrep watch process: {pid}")
+
+    if os.name == "nt":
+        sig = signal.SIGTERM
+    else:
+        sig = signal.SIGKILL
+
+    os.kill(pid, sig)
+    debug_log(f"Killed mgrep watch process: {pid}")
+    pid_file.unlink()
+    debug_log(f"Removed PID file: {pid_file}")
+
 
 if __name__ == "__main__":
     debug_log("Killing mgrep watch process")
     payload = read_hook_input()
-
-    pid_file = f"/tmp/mgrep-watch-pid-{payload.get('session_id')}.txt"
-    if not os.path.exists(pid_file):
-        debug_log(f"PID file not found: {pid_file}")
-        sys.exit(1)
-    pid = int(open(pid_file).read().strip())
-    debug_log(f"Killing mgrep watch process: {pid}")
-    os.kill(pid, signal.SIGKILL)
-    debug_log(f"Killed mgrep watch process: {pid}")
-    os.remove(pid_file)
-    debug_log(f"Removed PID file: {pid_file}")
+    kill_watch(payload)
     sys.exit(0)

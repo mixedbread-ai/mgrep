@@ -41,4 +41,35 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  hooks-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run hook unit tests
+        run: python -m unittest discover -s plugins/mgrep/hooks -p 'test_*.py'
+
+      - name: Windows smoke import
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          python - <<'PY'
+import sys, subprocess, tempfile, pathlib
+sys.path.append('plugins/mgrep/hooks')
+import mgrep_watch
+
+assert hasattr(subprocess, 'CREATE_NEW_PROCESS_GROUP'), 'missing CREATE_NEW_PROCESS_GROUP'
+print('CREATE_NEW_PROCESS_GROUP present')
+
+print('TMP_DIR', mgrep_watch.TMP_DIR)
+assert pathlib.Path(tempfile.gettempdir()).exists(), 'temp dir missing'
+PY
