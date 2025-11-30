@@ -17,17 +17,19 @@ export async function startWatch(options: {
     const store = await createStore();
 
     // Refresh JWT token every 5 minutes (before 15-minute expiration)
-    const REFRESH_INTERVAL = 5 * 60 * 1000;
-    setInterval(async () => {
-      try {
-        await store.refreshClient?.();
-      } catch (err) {
-        console.error(
-          "Failed to refresh JWT token:",
-          err instanceof Error ? err.message : "Unknown error",
-        );
-      }
-    }, REFRESH_INTERVAL);
+    if (!options.dryRun) {
+      const REFRESH_INTERVAL = 5 * 60 * 1000;
+      setInterval(async () => {
+        try {
+          await store.refreshClient?.();
+        } catch (err) {
+          console.error(
+            "Failed to refresh JWT token:",
+            err instanceof Error ? err.message : "Unknown error",
+          );
+        }
+      }, REFRESH_INTERVAL);
+    }
 
     const fileSystem = createFileSystem({
       ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
