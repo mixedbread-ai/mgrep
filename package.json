@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "postbuild": "chmod +x dist/index.js",
+    "postbuild": "chmod +x dist/index.js && cp -r plugins dist/",
     "dev": "npx tsc && node dist/index.js",
     "test": "bats test/test.bats",
     "format": "biome check --write .",

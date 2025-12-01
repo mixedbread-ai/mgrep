@@ -6,7 +6,7 @@ import { ensureAuthenticated } from "../lib/utils";
 
 const PLUGIN_ROOT =
   process.env.DROID_PLUGIN_ROOT ||
-  path.resolve(__dirname, "../../plugins/mgrep");
+  path.resolve(__dirname, "../../dist/plugins/mgrep");
 const PLUGIN_HOOKS_DIR = path.join(PLUGIN_ROOT, "hooks");
 const PLUGIN_SKILL_PATH = path.join(PLUGIN_ROOT, "skills", "mgrep", "SKILL.md");
 
