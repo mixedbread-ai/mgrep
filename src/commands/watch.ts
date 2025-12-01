@@ -13,8 +13,28 @@ export async function startWatch(options: {
   store: string;
   dryRun: boolean;
 }): Promise<void> {
+  let refreshInterval: NodeJS.Timeout | undefined;
+
   try {
     const store = await createStore();
+
+    // Refresh JWT token every 5 minutes (before 15-minute expiration)
+    if (!options.dryRun) {
+      const REFRESH_INTERVAL = 5 * 60 * 1000;
+      refreshInterval = setInterval(async () => {
+        try {
+          await store.refreshClient?.();
+        } catch (err) {
+          console.error(
+            "Failed to refresh JWT token:",
+            err instanceof Error ? err.message : "Unknown error",
+          );
+        }
+      }, REFRESH_INTERVAL);
+      // Allow process to exit even if interval is active (fs.watch keeps it alive anyway)
+      refreshInterval.unref();
+    }
+
     const fileSystem = createFileSystem({
       ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
     });
@@ -92,6 +112,9 @@ export async function startWatch(options: {
       }
     });
   } catch (error) {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to start watcher:", message);
     process.exitCode = 1;

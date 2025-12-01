@@ -23,12 +23,17 @@ export async function createStore(): Promise<Store> {
   }
 
   await ensureAuthenticated();
-  const jwtToken = await getJWTToken();
-  const client = new Mixedbread({
-    baseURL: BASE_URL,
-    apiKey: jwtToken,
-  });
-  return new MixedbreadStore(client);
+
+  async function createClient() {
+    const jwtToken = await getJWTToken();
+    return new Mixedbread({
+      baseURL: BASE_URL,
+      apiKey: jwtToken,
+    });
+  }
+
+  const client = await createClient();
+  return new MixedbreadStore(client, createClient);
 }
 
 /**
