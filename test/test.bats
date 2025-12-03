@@ -308,3 +308,20 @@ teardown() {
     assert_output --partial '"metadata":'
 }
 
+@test "Search with json output and answer" {
+    run mgrep search --json --answer test
+
+    assert_success
+    assert_output --partial '"answer":'
+    assert_output --partial '"sources":'
+    assert_output --partial '"type": "text"'
+}
+
+@test "Search with json output and no results" {
+    run mgrep search --json "nonexistentstring12345"
+
+    assert_success
+    assert_output --partial '"data": []'
+}
+
+
