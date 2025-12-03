@@ -144,6 +144,7 @@ export const search: Command = new CommanderCommand("search")
     "Disable reranking of search results",
     parseBooleanEnv(process.env.MGREP_RERANK, true), // `true` here means that reranking is enabled by default
   )
+  .option("--json", "Output results in JSON format", false)
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -157,6 +158,7 @@ export const search: Command = new CommanderCommand("search")
       sync: boolean;
       dryRun: boolean;
       rerank: boolean;
+      json: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -202,44 +204,81 @@ export const search: Command = new CommanderCommand("search")
         ? exec_path
         : normalize(join(root, exec_path ?? ""));
 
-      let response: string;
-      if (!options.answer) {
-        const results = await store.search(
-          options.store,
-          pattern,
-          parseInt(options.maxCount, 10),
-          { rerank: options.rerank },
-          {
-            all: [
-              {
-                key: "path",
-                operator: "starts_with",
-                value: search_path,
-              },
-            ],
-          },
-        );
-        response = formatSearchResponse(results, options.content);
+      if (options.json) {
+        if (!options.answer) {
+          const results = await store.search(
+            options.store,
+            pattern,
+            parseInt(options.maxCount, 10),
+            { rerank: options.rerank },
+            {
+              all: [
+                {
+                  key: "path",
+                  operator: "starts_with",
+                  value: search_path,
+                },
+              ],
+            },
+          );
+          console.log(JSON.stringify(results, null, 2));
+        } else {
+          const results = await store.ask(
+            options.store,
+            pattern,
+            parseInt(options.maxCount, 10),
+            { rerank: options.rerank },
+            {
+              all: [
+                {
+                  key: "path",
+                  operator: "starts_with",
+                  value: search_path,
+                },
+              ],
+            },
+          );
+          console.log(JSON.stringify(results, null, 2));
+        }
       } else {
-        const results = await store.ask(
-          options.store,
-          pattern,
-          parseInt(options.maxCount, 10),
-          { rerank: options.rerank },
-          {
-            all: [
-              {
-                key: "path",
-                operator: "starts_with",
-                value: search_path,
-              },
-            ],
-          },
-        );
-        response = formatAskResponse(results, options.content);
+        let response: string;
+        if (!options.answer) {
+          const results = await store.search(
+            options.store,
+            pattern,
+            parseInt(options.maxCount, 10),
+            { rerank: options.rerank },
+            {
+              all: [
+                {
+                  key: "path",
+                  operator: "starts_with",
+                  value: search_path,
+                },
+              ],
+            },
+          );
+          response = formatSearchResponse(results, options.content);
+        } else {
+          const results = await store.ask(
+            options.store,
+            pattern,
+            parseInt(options.maxCount, 10),
+            { rerank: options.rerank },
+            {
+              all: [
+                {
+                  key: "path",
+                  operator: "starts_with",
+                  value: search_path,
+                },
+              ],
+            },
+          );
+          response = formatAskResponse(results, options.content);
+        }
+        console.log(response);
       }
-
-      console.log(response);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("Failed to search:", message);
