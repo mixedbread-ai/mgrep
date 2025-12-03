@@ -7,7 +7,12 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { deleteFile, initialSync, uploadFile } from "../lib/utils";
+import {
+  QuotaExceededError,
+  deleteFile,
+  initialSync,
+  uploadFile,
+} from "../lib/utils";
 
 export async function startWatch(options: {
   store: string;
@@ -62,9 +67,20 @@ export async function startWatch(options: {
       );
       const deletedInfo =
         result.deleted > 0 ? ` • deleted ${result.deleted}` : "";
-      spinner.succeed(
-        `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}${deletedInfo}`,
-      );
+      const errorsInfo =
+        result.errors > 0 ? ` • errors ${result.errors}` : "";
+      if (result.errors > 0) {
+        spinner.warn(
+          `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}${deletedInfo}${errorsInfo}`,
+        );
+        console.error(
+          `\n⚠️  ${result.errors} file(s) failed to upload. Run with DEBUG=mgrep* for more details.`,
+        );
+      } else {
+        spinner.succeed(
+          `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}${deletedInfo}`,
+        );
+      }
       if (options.dryRun) {
         console.log(
           formatDryRunSummary(result, {
@@ -75,6 +91,16 @@ export async function startWatch(options: {
         return;
       }
     } catch (e) {
+      if (e instanceof QuotaExceededError) {
+        spinner.fail("Quota exceeded");
+        console.error(
+          "\n❌ Free tier quota exceeded. You've reached the monthly limit of 2,000,000 store tokens.",
+        );
+        console.error(
+          "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
+        );
+        process.exit(1);
+      }
       spinner.fail("Initial upload failed");
       throw e;
     }

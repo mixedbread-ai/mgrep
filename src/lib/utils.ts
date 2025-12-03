@@ -13,6 +13,24 @@ import { getStoredToken } from "./token";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 
+/** Error thrown when the free tier quota is exceeded */
+export class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QuotaExceededError";
+  }
+}
+
+/** Check if an error message indicates a quota/rate limit issue */
+function isQuotaError(errorMessage: string): boolean {
+  return (
+    errorMessage.includes("Free tier") ||
+    errorMessage.includes("quota") ||
+    errorMessage.includes("rate limit") ||
+    errorMessage.includes("Upgrade your plan")
+  );
+}
+
 function isSubpath(parent: string, child: string): boolean {
   const parentPath = path.resolve(parent);
   const childPath = path.resolve(child);
@@ -120,15 +138,35 @@ export async function uploadFile(
       fs.createReadStream(filePath) as unknown as File | ReadableStream,
       options,
     );
-  } catch (_err) {
+  } catch (streamErr) {
+    const streamErrMsg =
+      streamErr instanceof Error ? streamErr.message : String(streamErr);
+
+    // Check for quota errors and throw immediately to stop processing
+    if (isQuotaError(streamErrMsg)) {
+      throw new QuotaExceededError(streamErrMsg);
+    }
+
     if (!isText(filePath)) {
       return false;
     }
-    await store.uploadFile(
-      storeId,
-      new File([buffer], fileName, { type: "text/plain" }),
-      options,
-    );
+    try {
+      await store.uploadFile(
+        storeId,
+        new File([buffer], fileName, { type: "text/plain" }),
+        options,
+      );
+    } catch (fileErr) {
+      const fileErrMsg =
+        fileErr instanceof Error ? fileErr.message : String(fileErr);
+
+      // Check for quota errors and throw immediately to stop processing
+      if (isQuotaError(fileErrMsg)) {
+        throw new QuotaExceededError(fileErrMsg);
+      }
+
+      throw fileErr;
+    }
   }
   return true;
 }
@@ -156,6 +194,9 @@ export async function initialSync(
   let processed = 0;
   let uploaded = 0;
   let deleted = 0;
+  let errors = 0;
+  let quotaExceeded = false;
+  let quotaErrorMessage = "";
 
   const concurrency = 100;
   const limit = pLimit(concurrency);
@@ -163,6 +204,12 @@ export async function initialSync(
   await Promise.all([
     ...repoFiles.map((filePath) =>
       limit(async () => {
+        // Skip if quota exceeded
+        if (quotaExceeded) {
+          processed += 1;
+          return;
+        }
+
         try {
           const buffer = await fs.promises.readFile(filePath);
           const hash = computeBufferHash(buffer);
@@ -183,14 +230,46 @@ export async function initialSync(
               uploaded += 1;
             }
           }
-          onProgress?.({ processed, uploaded, deleted, total, filePath });
-        } catch (_err) {
-          onProgress?.({ processed, uploaded, deleted, total, filePath });
+          onProgress?.({ processed, uploaded, deleted, errors, total, filePath });
+        } catch (err) {
+          // Check if quota exceeded
+          if (err instanceof QuotaExceededError) {
+            quotaExceeded = true;
+            quotaErrorMessage = err.message;
+            onProgress?.({
+              processed,
+              uploaded,
+              deleted,
+              errors,
+              total,
+              filePath,
+              lastError: quotaErrorMessage,
+            });
+            return;
+          }
+
+          errors += 1;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          onProgress?.({
+            processed,
+            uploaded,
+            deleted,
+            errors,
+            total,
+            filePath,
+            lastError: errorMessage,
+          });
         }
       }),
     ),
     ...filesToDelete.map((filePath) =>
       limit(async () => {
+        // Skip if quota exceeded
+        if (quotaExceeded) {
+          processed += 1;
+          return;
+        }
+
         try {
           if (dryRun) {
             console.log("Dry run: would have deleted", filePath);
@@ -199,13 +278,29 @@ export async function initialSync(
           }
           deleted += 1;
           processed += 1;
-          onProgress?.({ processed, uploaded, deleted, total, filePath });
-        } catch (_err) {
+          onProgress?.({ processed, uploaded, deleted, errors, total, filePath });
+        } catch (err) {
           processed += 1;
-          onProgress?.({ processed, uploaded, deleted, total, filePath });
+          errors += 1;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          onProgress?.({
+            processed,
+            uploaded,
+            deleted,
+            errors,
+            total,
+            filePath,
+            lastError: errorMessage,
+          });
         }
       }),
     ),
   ]);
-  return { processed, uploaded, deleted, total };
+
+  // If quota was exceeded, throw the error after cleanup
+  if (quotaExceeded) {
+    throw new QuotaExceededError(quotaErrorMessage);
+  }
+
+  return { processed, uploaded, deleted, errors, total };
 }

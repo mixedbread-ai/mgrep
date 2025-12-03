@@ -10,14 +10,17 @@ export interface InitialSyncProgress {
   processed: number;
   uploaded: number;
   deleted: number;
+  errors: number;
   total: number;
   filePath?: string;
+  lastError?: string;
 }
 
 export interface InitialSyncResult {
   processed: number;
   uploaded: number;
   deleted: number;
+  errors: number;
   total: number;
 }
 
@@ -55,7 +58,8 @@ export function createIndexingSpinner(
       const rel = formatRelativePath(root, info.filePath);
       const suffix = rel ? ` ${rel}` : "";
       const deletedInfo = info.deleted > 0 ? ` • deleted ${info.deleted}` : "";
-      spinner.text = `Indexing files (${info.processed}/${info.total}) • uploaded ${info.uploaded}${deletedInfo}${suffix}`;
+      const errorsInfo = info.errors > 0 ? ` • errors ${info.errors}` : "";
+      spinner.text = `Indexing files (${info.processed}/${info.total}) • uploaded ${info.uploaded}${deletedInfo}${errorsInfo}${suffix}`;
     },
   };
 }
