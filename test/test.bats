@@ -298,3 +298,24 @@ teardown() {
     assert_success
     refute_output --partial 'test-2.txt'
 }
+
+@test "Sync from subdirectory only processes files in that subdirectory" {
+    mkdir -p "$BATS_TMPDIR/test-store/projectA"
+    mkdir -p "$BATS_TMPDIR/test-store/projectB"
+    echo "Project A file 1" > "$BATS_TMPDIR/test-store/projectA/a1.txt"
+    echo "Project A file 2" > "$BATS_TMPDIR/test-store/projectA/a2.txt"
+    echo "Project B file 1" > "$BATS_TMPDIR/test-store/projectB/b1.txt"
+
+    run mgrep search --sync test
+    assert_success
+
+    echo "Modified A file 1" > "$BATS_TMPDIR/test-store/projectA/a1.txt"
+
+    cd "$BATS_TMPDIR/test-store/projectA"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'a1.txt'
+    refute_output --partial 'b1.txt'
+    refute_output --partial 'test.txt'
+}

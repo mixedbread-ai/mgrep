@@ -59,11 +59,22 @@ export interface StoreInfo {
 /**
  * Interface for store operations
  */
+export interface ListFilesOptions {
+  pathPrefix?: string;
+}
+
 export interface Store {
   /**
    * List files in a store as an async iterator
+   *
+   * @param storeId - The ID of the store
+   * @param options - Optional filtering options
+   * @param options.pathPrefix - Only return files whose path starts with this prefix
    */
-  listFiles(storeId: string): AsyncGenerator<StoreFile>;
+  listFiles(
+    storeId: string,
+    options?: ListFilesOptions,
+  ): AsyncGenerator<StoreFile>;
 
   /**
    * Upload a file to a store
@@ -138,12 +149,18 @@ export class MixedbreadStore implements Store {
     this.client = await this.clientFactory();
   }
 
-  async *listFiles(storeId: string): AsyncGenerator<StoreFile> {
+  async *listFiles(
+    storeId: string,
+    options?: ListFilesOptions,
+  ): AsyncGenerator<StoreFile> {
     let after: string | undefined;
     do {
       const response = await this.client.stores.files.list(storeId, {
         limit: 100,
         after,
+        metadata_filter: options?.pathPrefix
+          ? { key: "path", operator: "starts_with", value: options.pathPrefix }
+          : null,
       });
 
       for (const f of response.data) {
@@ -355,9 +372,19 @@ export class TestStore implements Store {
     throw new Error("Unknown file type");
   }
 
-  async *listFiles(_storeId: string): AsyncGenerator<StoreFile> {
+  async *listFiles(
+    _storeId: string,
+    options?: ListFilesOptions,
+  ): AsyncGenerator<StoreFile> {
     const db = await this.load();
     for (const [external_id, file] of Object.entries(db.files)) {
+      if (
+        options?.pathPrefix &&
+        file.metadata?.path &&
+        !file.metadata.path.startsWith(options.pathPrefix)
+      ) {
+        continue;
+      }
       yield {
         external_id,
         metadata: file.metadata,
