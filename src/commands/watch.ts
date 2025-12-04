@@ -123,16 +123,24 @@ export async function startWatch(options: {
           return;
         }
 
-        console.log(`${eventType}: ${filePath}`);
-        uploadFile(store, options.store, filePath, filename).catch((err) => {
-          console.error("Failed to upload changed file:", filePath, err);
-        });
+        uploadFile(store, options.store, filePath, filename)
+          .then((didUpload) => {
+            if (didUpload) {
+              console.log(`${eventType}: ${filePath}`);
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to upload changed file:", filePath, err);
+          });
       } catch {
         if (filePath.startsWith(watchRoot) && !fs.existsSync(filePath)) {
-          console.log(`delete: ${filePath}`);
-          deleteFile(store, options.store, filePath).catch((err) => {
-            console.error("Failed to delete file:", filePath, err);
-          });
+          deleteFile(store, options.store, filePath)
+            .then(() => {
+              console.log(`delete: ${filePath}`);
+            })
+            .catch((err) => {
+              console.error("Failed to delete file:", filePath, err);
+            });
         }
       }
     });
