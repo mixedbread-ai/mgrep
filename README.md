@@ -6,7 +6,15 @@
   <p><em>A calm, CLI-native way to semantically grep everything, like code, images, pdfs and more.</em></p>
   <a href="https://www.npmjs.com/package/@mixedbread/mgrep"><img src="https://badge.fury.io/js/@mixedbread%2Fcli.svg" alt="npm version" /></a>
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a><br>
-  <a href="https://demo.mgrep.mixedbread.com">Try it out in our playground!</a>
+  <a href="https://demo.mgrep.mixedbread.com"><img src="https://img.shields.io/badge/Playground-Try%20it%20now-brightgreen" alt="Playground: Try it now" /></a>
+
+  <br>
+
+  <p align="center">
+    <video src="https://github.com/user-attachments/assets/7cb6d2ab-f96b-4092-9088-abbca85b0d52" controls="controls" style="max-width: 730px;">
+      Your browser does not support the video tag.
+    </video>
+  </p>
 </div>
 
 ## Why mgrep?
@@ -82,7 +90,7 @@ More agents (Cursor, Windsurf, etc.) are on the way—this section will grow as 
 
 We plugged `mgrep` into Claude Code and ran a benchmark of 50 QA tasks to evaluate the economics of `mgrep` against `grep`.
 
-![mgrep benchmark](assets/bench.jpg)
+![mgrep benchmark](public/bench.jpg)
 
 In our 50-task benchmark, `mgrep`+Claude Code used ~2x fewer tokens than grep-based workflows at similar or better judged quality.
 
