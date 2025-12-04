@@ -162,15 +162,16 @@ export const search: Command = new CommanderCommand("search")
       exec_path = "";
     }
 
+    const root = process.cwd();
+    const { spinner, onProgress } = createIndexingSpinner(root);
+
     try {
       const store = await createStore();
-      const root = process.cwd();
 
       if (options.sync) {
         const fileSystem = createFileSystem({
           ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
         });
-        const { spinner, onProgress } = createIndexingSpinner(root);
         const result = await initialSync(
           store,
           fileSystem,
@@ -242,17 +243,16 @@ export const search: Command = new CommanderCommand("search")
       console.log(response);
     } catch (error) {
       if (error instanceof QuotaExceededError) {
-        console.error(
+        spinner.fail(
           "\n❌ Free tier quota exceeded. You've reached the monthly limit of 2,000,000 store tokens.",
         );
         console.error(
           "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
         );
-        process.exitCode = 1;
         return;
+      } else {
+        spinner.fail("Failed to search");
       }
-      const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("Failed to search:", message);
       process.exitCode = 1;
     }
   });
