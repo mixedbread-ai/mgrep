@@ -8,9 +8,9 @@ import {
   formatDryRunSummary,
 } from "../lib/sync-helpers";
 import {
-  QuotaExceededError,
   deleteFile,
   initialSync,
+  QuotaExceededError,
   uploadFile,
 } from "../lib/utils";
 
@@ -67,8 +67,7 @@ export async function startWatch(options: {
       );
       const deletedInfo =
         result.deleted > 0 ? ` • deleted ${result.deleted}` : "";
-      const errorsInfo =
-        result.errors > 0 ? ` • errors ${result.errors}` : "";
+      const errorsInfo = result.errors > 0 ? ` • errors ${result.errors}` : "";
       if (result.errors > 0) {
         spinner.warn(
           `Initial sync complete (${result.processed}/${result.total}) • uploaded ${result.uploaded}${deletedInfo}${errorsInfo}`,

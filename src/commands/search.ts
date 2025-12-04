@@ -13,7 +13,7 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { QuotaExceededError, initialSync } from "../lib/utils";
+import { initialSync, QuotaExceededError } from "../lib/utils";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};

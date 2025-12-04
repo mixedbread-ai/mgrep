@@ -230,7 +230,14 @@ export async function initialSync(
               uploaded += 1;
             }
           }
-          onProgress?.({ processed, uploaded, deleted, errors, total, filePath });
+          onProgress?.({
+            processed,
+            uploaded,
+            deleted,
+            errors,
+            total,
+            filePath,
+          });
         } catch (err) {
           // Check if quota exceeded
           if (err instanceof QuotaExceededError) {
@@ -278,7 +285,14 @@ export async function initialSync(
           }
           deleted += 1;
           processed += 1;
-          onProgress?.({ processed, uploaded, deleted, errors, total, filePath });
+          onProgress?.({
+            processed,
+            uploaded,
+            deleted,
+            errors,
+            total,
+            filePath,
+          });
         } catch (err) {
           processed += 1;
           errors += 1;
