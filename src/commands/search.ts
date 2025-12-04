@@ -13,7 +13,7 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers";
-import { initialSync } from "../lib/utils";
+import { QuotaExceededError, initialSync } from "../lib/utils";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};
@@ -241,6 +241,16 @@ export const search: Command = new CommanderCommand("search")
 
       console.log(response);
     } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        console.error(
+          "\n❌ Free tier quota exceeded. You've reached the monthly limit of 2,000,000 store tokens.",
+        );
+        console.error(
+          "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
+        );
+        process.exitCode = 1;
+        return;
+      }
       const message = error instanceof Error ? error.message : "Unknown error";
       console.error("Failed to search:", message);
       process.exitCode = 1;
