@@ -298,3 +298,30 @@ teardown() {
     assert_success
     refute_output --partial 'test-2.txt'
 }
+
+@test "Search with json output" {
+    run mgrep search --json test
+
+    assert_success
+    assert_output --partial '"type": "text"'
+    assert_output --partial '"text":'
+    assert_output --partial '"metadata":'
+}
+
+@test "Search with json output and answer" {
+    run mgrep search --json --answer test
+
+    assert_success
+    assert_output --partial '"answer":'
+    assert_output --partial '"sources":'
+    assert_output --partial '"type": "text"'
+}
+
+@test "Search with json output and no results" {
+    run mgrep search --json "nonexistentstring12345"
+
+    assert_success
+    assert_output --partial '"data": []'
+}
+
+
