@@ -260,6 +260,10 @@ The tests are written using [bats](https://bats-core.readthedocs.io/en/stable/).
 - **Watcher feels noisy**: set `MXBAI_STORE` or pass `--store` to separate experiments, or pause the watcher and restart after large refactors.
 - **Need a fresh store**: delete it from the Mixedbread dashboard, then run `mgrep watch`. It will auto-create a new one.
 
+## Support
+
+For usage questions, feedback, or other support, please reach out on the [Mixedbread Slack](https://join.slack.com/t/mixedbreadcommunity/shared_invite/zt-3kagj5m36-wwM_hryIFby7B2wlcOaHaQ).
+
 ## License
 
 Apache-2.0. See the [LICENSE](https://opensource.org/licenses/Apache-2.0) file for details.
