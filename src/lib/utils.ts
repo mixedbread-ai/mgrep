@@ -62,12 +62,21 @@ export function isDevelopment(): boolean {
   return false;
 }
 
+/**
+ * Lists file hashes from the store, optionally filtered by path prefix.
+ *
+ * @param store - The store instance
+ * @param storeId - The ID of the store
+ * @param pathPrefix - Optional path prefix to filter files (only files starting with this path are returned)
+ * @returns A map of external IDs to their hashes
+ */
 export async function listStoreFileHashes(
   store: Store,
   storeId: string,
+  pathPrefix?: string,
 ): Promise<Map<string, string | undefined>> {
   const byExternalId = new Map<string, string | undefined>();
-  for await (const file of store.listFiles(storeId)) {
+  for await (const file of store.listFiles(storeId, { pathPrefix })) {
     const externalId = file.external_id ?? undefined;
     if (!externalId) continue;
     const metadata = file.metadata;
@@ -179,7 +188,7 @@ export async function initialSync(
   dryRun?: boolean,
   onProgress?: (info: InitialSyncProgress) => void,
 ): Promise<InitialSyncResult> {
-  const storeHashes = await listStoreFileHashes(store, storeId);
+  const storeHashes = await listStoreFileHashes(store, storeId, repoRoot);
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
