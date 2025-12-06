@@ -64,7 +64,10 @@ function formatAskResponse(response: AskResponse, show_content: boolean) {
   return `${response.answer}\n\n${sourceEntries.join("\n")}`;
 }
 
-function formatSearchResponse(response: SearchResponse, show_content: boolean) {
+export function formatSearchResponse(
+  response: SearchResponse,
+  show_content: boolean,
+) {
   return response.data
     .map((chunk) => formatChunk(chunk, show_content))
     .join("\n");

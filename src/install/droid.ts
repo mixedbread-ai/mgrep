@@ -3,12 +3,20 @@ import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../lib/utils";
+import { promisify } from "node:util";
+import { exec } from "node:child_process";
 
 const PLUGIN_ROOT =
   process.env.DROID_PLUGIN_ROOT ||
   path.resolve(__dirname, "../../dist/plugins/mgrep");
-const PLUGIN_HOOKS_DIR = path.join(PLUGIN_ROOT, "hooks");
 const PLUGIN_SKILL_PATH = path.join(PLUGIN_ROOT, "skills", "mgrep", "SKILL.md");
+
+const shell =
+  process.env.SHELL ||
+  (process.platform === "win32" ? process.env.COMSPEC || "cmd.exe" : "/bin/sh");
+
+const execAsync = promisify(exec);
+
 
 type HookCommand = {
   type: "command";
@@ -93,92 +101,21 @@ function isHooksConfig(value: unknown): value is HooksConfig {
   return Object.values(value).every((entry) => Array.isArray(entry));
 }
 
-function mergeHooks(
-  existingHooks: HooksConfig | undefined,
-  newHooks: HooksConfig,
-): HooksConfig {
-  const merged: HooksConfig = existingHooks
-    ? (JSON.parse(JSON.stringify(existingHooks)) as HooksConfig)
-    : {};
-  for (const [event, entries] of Object.entries(newHooks)) {
-    const current: HookEntry[] = Array.isArray(merged[event])
-      ? merged[event]
-      : [];
-    for (const entry of entries) {
-      const command = entry?.hooks?.[0]?.command;
-      const matcher = entry?.matcher ?? null;
-      const duplicate = current.some(
-        (item) =>
-          (item?.matcher ?? null) === matcher &&
-          item?.hooks?.[0]?.command === command &&
-          item?.hooks?.[0]?.type === entry?.hooks?.[0]?.type,
-      );
-      if (!duplicate) {
-        current.push(entry);
-      }
-    }
-    merged[event] = current;
-  }
-  return merged;
-}
-
 async function installPlugin() {
   const root = resolveDroidRoot();
-  const hooksDir = path.join(root, "hooks", "mgrep");
   const skillsDir = path.join(root, "skills", "mgrep");
-  const settingsPath = path.join(root, "settings.json");
 
-  const watchHook = readPluginAsset(
-    path.join(PLUGIN_HOOKS_DIR, "mgrep_watch.py"),
-  );
-  const killHook = readPluginAsset(
-    path.join(PLUGIN_HOOKS_DIR, "mgrep_watch_kill.py"),
-  );
   const skillContent = readPluginAsset(PLUGIN_SKILL_PATH);
 
-  const watchPy = path.join(hooksDir, "mgrep_watch.py");
-  const killPy = path.join(hooksDir, "mgrep_watch_kill.py");
-  writeFileIfChanged(watchPy, watchHook);
-  writeFileIfChanged(killPy, killHook);
-
-  const hookConfig: HooksConfig = {
-    SessionStart: [
-      {
-        matcher: "startup|resume",
-        hooks: [
-          {
-            type: "command",
-            command: `python3 "${watchPy}"`,
-            timeout: 10,
-          },
-        ],
-      },
-    ],
-    SessionEnd: [
-      {
-        hooks: [
-          {
-            type: "command",
-            command: `python3 "${killPy}"`,
-            timeout: 10,
-          },
-        ],
-      },
-    ],
-  };
   writeFileIfChanged(
     path.join(skillsDir, "SKILL.md"),
     skillContent.trimStart(),
   );
 
-  const settings = loadSettings(settingsPath);
-  settings.enableHooks = true;
-  settings.allowBackgroundProcesses = true;
-  settings.hooks = mergeHooks(
-    isHooksConfig(settings.hooks) ? settings.hooks : undefined,
-    hookConfig,
-  );
-  saveSettings(settingsPath, settings as Record<string, unknown>);
+    await execAsync("droid mcp add mgrep -- mgrep mcp", {
+      shell,
+      env: process.env,
+    });
 
   console.log(
     `Installed the mgrep hooks and skill for Factory Droid in ${root}`,
@@ -230,11 +167,15 @@ async function uninstallPlugin() {
         saveSettings(settingsPath, settings as Record<string, unknown>);
       }
     } catch (error) {
-      console.warn(
-        `Failed to update Factory Droid settings during uninstall: ${error}`,
-      );
     }
   }
+
+  await execAsync("droid mcp remove mgrep", {
+    shell,
+    env: process.env,
+  });
+
+  console.log("Removed mgrep from Factory Droid");
 }
 
 export const installDroid = new Command("install-droid")

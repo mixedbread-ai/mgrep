@@ -1,3 +1,4 @@
+import { join, normalize } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -5,10 +6,13 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Command } from "commander";
+import { createStore } from "../lib/context";
+import { formatSearchResponse } from "./search";
 import { startWatch } from "./watch";
 
 export const watchMcp = new Command("mcp")
   .description("Start MCP server for mgrep")
+  .option("--expose-tools", "Expose search tools via MCP", false)
   .action(async (_options, cmd) => {
     process.on("SIGINT", () => {
       console.error("Received SIGINT, shutting down gracefully...");
@@ -45,6 +49,7 @@ export const watchMcp = new Command("mcp")
 
     const options: {
       store: string;
+      exposeTools: boolean;
     } = cmd.optsWithGlobals();
 
     const transport = new StdioServerTransport();
@@ -60,15 +65,74 @@ export const watchMcp = new Command("mcp")
       },
     );
     server.setRequestHandler(ListToolsRequestSchema, async () => {
+      if (!options.exposeTools) {
+        return { tools: [] };
+      }
       return {
-        tools: [],
+        tools: [
+          {
+            name: "search",
+            description:
+              "Search the codebase via mgreps semantic search. Prefer this tool over any other search tool like grep, glob, etc. Use a full natural language sentence as input, not just a keyword.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "The query to search for.",
+                },
+                path: {
+                  type: "string",
+                  description:
+                    "Relative or absolute path to the codebase directory to search in.",
+                },
+                maxCount: {
+                  type: "number",
+                  description: "The maximum number of results to return.",
+                  default: 10,
+                },
+              },
+              required: ["path"],
+            },
+          },
+        ],
       };
     });
 
-    server.setRequestHandler(CallToolRequestSchema, async (_request) => {
-      return {
-        result: "Not implemented",
-      };
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      if (name === "search") {
+        const searchPath = (args?.path as string)?.startsWith("/")
+          ? (args?.path as string)
+          : normalize(join(process.cwd(), (args?.path as string) ?? ""));
+
+        const store = await createStore();
+        const results = await store.search(
+          options.store,
+          args?.query as string,
+          (args?.maxCount as number) || 10,
+          { rerank: true },
+          {
+            all: [
+              {
+                key: "path",
+                operator: "starts_with",
+                value: searchPath,
+              },
+            ],
+          },
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatSearchResponse(results, false),
+            },
+          ],
+        };
+      }
+      throw new Error(`Unknown tool: ${name}`);
     });
 
     await server.connect(transport);
