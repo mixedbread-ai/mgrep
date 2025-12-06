@@ -8,6 +8,7 @@ import type {
   ChunkType,
   FileMetadata,
   SearchResponse,
+  Store,
 } from "../lib/store";
 import {
   createIndexingSpinner,
@@ -110,6 +111,59 @@ function parseBooleanEnv(
   return lower === "1" || lower === "true" || lower === "yes" || lower === "y";
 }
 
+/**
+ * Syncs local files to the store with progress indication.
+ * @returns true if the caller should return early (dry-run mode), false otherwise
+ */
+async function syncFiles(
+  store: Store,
+  storeName: string,
+  root: string,
+  dryRun: boolean,
+): Promise<boolean> {
+  const { spinner, onProgress } = createIndexingSpinner(root);
+
+  try {
+    const fileSystem = createFileSystem({
+      ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
+    });
+    const result = await initialSync(
+      store,
+      fileSystem,
+      storeName,
+      root,
+      dryRun,
+      onProgress,
+    );
+
+    while (true) {
+      const info = await store.getInfo(storeName);
+      spinner.text = `Indexing ${info.counts.pending + info.counts.in_progress} file(s)`;
+      if (info.counts.pending === 0 && info.counts.in_progress === 0) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    spinner.succeed("Indexing complete");
+
+    if (dryRun) {
+      console.log(
+        formatDryRunSummary(result, {
+          actionDescription: "would have indexed",
+        }),
+      );
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    spinner.fail(`Failed to sync: ${message}`);
+    throw error;
+  }
+}
+
 export const search: Command = new CommanderCommand("search")
   .description("File pattern searcher")
   .option("-i", "Makes the search case-insensitive", false)
@@ -163,41 +217,13 @@ export const search: Command = new CommanderCommand("search")
     }
 
     const root = process.cwd();
-    let spinner: ReturnType<typeof createIndexingSpinner>["spinner"] | undefined;
 
     try {
       const store = await createStore();
 
       if (options.sync) {
-        const indexingSpinner = createIndexingSpinner(root);
-        spinner = indexingSpinner.spinner;
-        const onProgress = indexingSpinner.onProgress;
-        const fileSystem = createFileSystem({
-          ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
-        });
-        const result = await initialSync(
-          store,
-          fileSystem,
-          options.store,
-          root,
-          options.dryRun,
-          onProgress,
-        );
-        while (true) {
-          const info = await store.getInfo(options.store);
-          spinner.text = `Indexing ${info.counts.pending + info.counts.in_progress} file(s)`;
-          if (info.counts.pending === 0 && info.counts.in_progress === 0) {
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-        spinner.succeed("Indexing complete");
-        if (options.dryRun) {
-          console.log(
-            formatDryRunSummary(result, {
-              actionDescription: "would have indexed",
-            }),
-          );
+        const shouldReturn = await syncFiles(store, options.store, root, options.dryRun);
+        if (shouldReturn) {
           return;
         }
       }
@@ -246,24 +272,16 @@ export const search: Command = new CommanderCommand("search")
       console.log(response);
     } catch (error) {
       if (error instanceof QuotaExceededError) {
-        const quotaMessage =
-          "Free tier quota exceeded. You've reached the monthly limit of 2,000,000 store tokens.";
-        if (spinner) {
-          spinner.fail(quotaMessage);
-        } else {
-          console.error(quotaMessage);
-        }
+        console.error(
+          "Free tier quota exceeded. You've reached the monthly limit of 2,000,000 store tokens.",
+        );
         console.error(
           "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
         );
       } else {
         const message =
           error instanceof Error ? error.message : "Unknown error";
-        if (spinner) {
-          spinner.fail(`Failed to search: ${message}`);
-        } else {
-          console.error(`Failed to search: ${message}`);
-        }
+        console.error(`Failed to search: ${message}`);
       }
       process.exitCode = 1;
     }
