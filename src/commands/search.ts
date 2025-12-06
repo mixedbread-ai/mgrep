@@ -158,8 +158,7 @@ async function syncFiles(
 
     return false;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    spinner.fail(`Failed to sync: ${message}`);
+    spinner.stop();
     throw error;
   }
 }
