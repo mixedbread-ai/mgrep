@@ -221,7 +221,12 @@ export const search: Command = new CommanderCommand("search")
       const store = await createStore();
 
       if (options.sync) {
-        const shouldReturn = await syncFiles(store, options.store, root, options.dryRun);
+        const shouldReturn = await syncFiles(
+          store,
+          options.store,
+          root,
+          options.dryRun,
+        );
         if (shouldReturn) {
           return;
         }
