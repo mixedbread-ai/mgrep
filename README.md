@@ -5,7 +5,8 @@
   <h1>mgrep</h1>
   <p><em>A calm, CLI-native way to semantically grep everything, like code, images, pdfs and more.</em></p>
   <a href="https://www.npmjs.com/package/@mixedbread/mgrep"><img src="https://badge.fury.io/js/@mixedbread%2Fcli.svg" alt="npm version" /></a>
-  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a><br>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0" /></a>
+  <a href="https://mixedbread.com/urls/slack"><img src="https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=white" alt="Slack" /></a><br>
   <a href="https://demo.mgrep.mixedbread.com"><img src="https://img.shields.io/badge/Playground-Try%20it%20now-brightgreen" alt="Playground: Try it now" /></a>
 
   <br>
