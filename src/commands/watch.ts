@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
+import { type CliConfigOptions, loadConfig } from "../lib/config";
 import { createFileSystem, createStore } from "../lib/context";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
 import {
@@ -14,10 +15,13 @@ import {
   uploadFile,
 } from "../lib/utils";
 
-export async function startWatch(options: {
+export interface WatchOptions {
   store: string;
   dryRun: boolean;
-}): Promise<void> {
+  maxFileSize?: number;
+}
+
+export async function startWatch(options: WatchOptions): Promise<void> {
   let refreshInterval: NodeJS.Timeout | undefined;
 
   try {
@@ -44,6 +48,10 @@ export async function startWatch(options: {
       ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
     });
     const watchRoot = process.cwd();
+    const cliOptions: CliConfigOptions = {
+      maxFileSize: options.maxFileSize,
+    };
+    const config = loadConfig(watchRoot, cliOptions);
     console.debug("Watching for file changes in", watchRoot);
 
     const { spinner, onProgress } = createIndexingSpinner(watchRoot);
@@ -64,6 +72,7 @@ export async function startWatch(options: {
         watchRoot,
         options.dryRun,
         onProgress,
+        config,
       );
       const deletedInfo =
         result.deleted > 0 ? ` • deleted ${result.deleted}` : "";
@@ -123,7 +132,7 @@ export async function startWatch(options: {
           return;
         }
 
-        uploadFile(store, options.store, filePath, filename)
+        uploadFile(store, options.store, filePath, filename, config)
           .then((didUpload) => {
             if (didUpload) {
               console.log(`${eventType}: ${filePath}`);
@@ -160,8 +169,15 @@ export const watch = new Command("watch")
     "Dry run the watch process (no actual file syncing)",
     false,
   )
+  .option("--max-file-size <bytes>", "Maximum file size in bytes to upload", (value) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      throw new InvalidArgumentError("Must be a positive integer.");
+    }
+    return parsed;
+  })
   .description("Watch for file changes")
   .action(async (_args, cmd) => {
-    const options: { store: string; dryRun: boolean } = cmd.optsWithGlobals();
+    const options: WatchOptions = cmd.optsWithGlobals();
     await startWatch(options);
   });

@@ -5,6 +5,7 @@ import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
 import { loginAction } from "../commands/login";
+import { exceedsMaxFileSize, type MgrepConfig } from "./config";
 import type { FileSystem } from "./file";
 import type { Store } from "./store";
 import type { InitialSyncProgress, InitialSyncResult } from "./sync-helpers";
@@ -125,7 +126,12 @@ export async function uploadFile(
   storeId: string,
   filePath: string,
   fileName: string,
+  config?: MgrepConfig,
 ): Promise<boolean> {
+  if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
+    return false;
+  }
+
   const buffer = await fs.promises.readFile(filePath);
   if (buffer.length === 0) {
     return false;
@@ -187,6 +193,7 @@ export async function initialSync(
   repoRoot: string,
   dryRun?: boolean,
   onProgress?: (info: InitialSyncProgress) => void,
+  config?: MgrepConfig,
 ): Promise<InitialSyncResult> {
   const storeHashes = await listStoreFileHashes(store, storeId, repoRoot);
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
@@ -220,6 +227,19 @@ export async function initialSync(
         }
 
         try {
+          if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
+            processed += 1;
+            onProgress?.({
+              processed,
+              uploaded,
+              deleted,
+              errors,
+              total,
+              filePath,
+            });
+            return;
+          }
+
           const buffer = await fs.promises.readFile(filePath);
           const hash = computeBufferHash(buffer);
           const existingHash = storeHashes.get(filePath);
@@ -234,6 +254,7 @@ export async function initialSync(
               storeId,
               filePath,
               path.basename(filePath),
+              config,
             );
             if (didUpload) {
               uploaded += 1;

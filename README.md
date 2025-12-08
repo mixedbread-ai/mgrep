@@ -147,6 +147,7 @@ directory for a pattern.
 | `-s`, `--sync` | Sync the local files to the store before searching |
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
 | `--no-rerank` | Disable reranking of search results |
+| `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
 
 All search options can also be configured via environment variables (see
 [Environment Variables](#environment-variables) section below).
@@ -168,9 +169,15 @@ It respects the current `.gitignore`, as well as a `.mgrepignore` file in the
 root of the repository. The `.mgrepignore` file follows the same syntax as the
 [`.gitignore`](https://git-scm.com/docs/gitignore) file.
 
+| Option | Description |
+| --- | --- |
+| `-d`, `--dry-run` | Dry run the watch process (no actual file syncing) |
+| `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
+
 **Examples:**
 ```bash
 mgrep watch  # index the current repository and keep the Mixedbread store in sync via file watchers
+mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
 ```
 
 ## Mixedbread under the hood
@@ -182,7 +189,27 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 - Results include relative paths plus contextual hints (line ranges for text, page numbers for PDFs, etc.) for a skim-friendly experience.
 - Because stores are cloud-backed, agents and teammates can query the same corpus without re-uploading.
 
-## Configuration Tips
+## Configuration
+
+mgrep can be configured via config files, environment variables, or CLI flags.
+
+### Config File
+
+Create a `.mgreprc.yaml` (or `.mgreprc.yml`) in your project root for local configuration, or `~/.config/mgrep/config.yaml` (or `config.yml`) for global configuration.
+
+```yaml
+# Maximum file size in bytes to upload (default: 10MB)
+maxFileSize: 5242880
+```
+
+**Configuration precedence** (highest to lowest):
+1. CLI flags (`--max-file-size`)
+2. Environment variables (`MGREP_MAX_FILE_SIZE`)
+3. Local config file (`.mgreprc.yaml` in project directory)
+4. Global config file (`~/.config/mgrep/config.yaml`)
+5. Default values
+
+### Configuration Tips
 
 - `--store <name>` lets you isolate workspaces (per repo, per team, per experiment). Stores are created on demand if they do not exist yet.
 - Ignore rules come straight from git, so temp files, build outputs, and vendored deps stay out of your embeddings.
@@ -208,6 +235,10 @@ searches.
 - `MGREP_SYNC`: Sync files before searching (set to `1` or `true` to enable)
 - `MGREP_DRY_RUN`: Enable dry run mode (set to `1` or `true` to enable)
 - `MGREP_RERANK`: Enable reranking of search results (set to `0` or `false` to disable, default: enabled)
+
+### Sync Options
+
+- `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `10485760` / 10MB)
 
 **Examples:**
 ```bash

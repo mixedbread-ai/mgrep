@@ -54,6 +54,7 @@
     "p-limit": "^3.1.0",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^5.0.0",
+    "yaml": "^2.8.2",
     "yocto-spinner": "^1.0.0",
     "zod": "^4.1.12"
   },

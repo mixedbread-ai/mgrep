@@ -1,6 +1,11 @@
 import { join, normalize } from "node:path";
 import type { Command } from "commander";
-import { Command as CommanderCommand } from "commander";
+import { Command as CommanderCommand, InvalidArgumentError } from "commander";
+import {
+  type CliConfigOptions,
+  loadConfig,
+  type MgrepConfig,
+} from "../lib/config";
 import { createFileSystem, createStore } from "../lib/context";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
 import type {
@@ -120,6 +125,7 @@ async function syncFiles(
   storeName: string,
   root: string,
   dryRun: boolean,
+  config?: MgrepConfig,
 ): Promise<boolean> {
   const { spinner, onProgress } = createIndexingSpinner(root);
 
@@ -134,6 +140,7 @@ async function syncFiles(
       root,
       dryRun,
       onProgress,
+      config,
     );
 
     while (true) {
@@ -197,6 +204,13 @@ export const search: Command = new CommanderCommand("search")
     "Disable reranking of search results",
     parseBooleanEnv(process.env.MGREP_RERANK, true), // `true` here means that reranking is enabled by default
   )
+  .option("--max-file-size <bytes>", "Maximum file size in bytes to upload", (value) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      throw new InvalidArgumentError("Must be a positive integer.");
+    }
+    return parsed;
+  })
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -210,12 +224,17 @@ export const search: Command = new CommanderCommand("search")
       sync: boolean;
       dryRun: boolean;
       rerank: boolean;
+      maxFileSize?: number;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
     }
 
     const root = process.cwd();
+    const cliOptions: CliConfigOptions = {
+      maxFileSize: options.maxFileSize,
+    };
+    const config = loadConfig(root, cliOptions);
 
     try {
       const store = await createStore();
@@ -226,6 +245,7 @@ export const search: Command = new CommanderCommand("search")
           options.store,
           root,
           options.dryRun,
+          config,
         );
         if (shouldReturn) {
           return;

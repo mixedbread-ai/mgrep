@@ -319,3 +319,65 @@ teardown() {
     refute_output --partial 'b1.txt'
     refute_output --partial 'test.txt'
 }
+
+@test "Config maxFileSize skips large files (YAML)" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'maxFileSize: 50' > "$BATS_TMPDIR/test-store/.mgreprc.yaml"
+
+    echo "small" > "$BATS_TMPDIR/test-store/small.txt"
+    dd if=/dev/zero bs=100 count=1 2>/dev/null | tr '\0' 'x' > "$BATS_TMPDIR/test-store/large.txt"
+
+    cd "$BATS_TMPDIR/test-store"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'small.txt'
+    refute_output --partial 'large.txt'
+}
+
+@test "Config file .mgreprc.yml also works" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'maxFileSize: 50' > "$BATS_TMPDIR/test-store/.mgreprc.yml"
+
+    echo "tiny" > "$BATS_TMPDIR/test-store/tiny.txt"
+    dd if=/dev/zero bs=100 count=1 2>/dev/null | tr '\0' 'y' > "$BATS_TMPDIR/test-store/big.txt"
+
+    cd "$BATS_TMPDIR/test-store"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'tiny.txt'
+    refute_output --partial 'big.txt'
+}
+
+@test "Config CLI flag overrides config file" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'maxFileSize: 1000000' > "$BATS_TMPDIR/test-store/.mgreprc.yaml"
+
+    echo "tiny" > "$BATS_TMPDIR/test-store/tiny.txt"
+    dd if=/dev/zero bs=100 count=1 2>/dev/null | tr '\0' 'y' > "$BATS_TMPDIR/test-store/medium.txt"
+
+    cd "$BATS_TMPDIR/test-store"
+    run mgrep watch --dry-run --max-file-size 50
+
+    assert_success
+    assert_output --partial 'tiny.txt'
+    refute_output --partial 'medium.txt'
+}
+
+@test "Config env variable overrides config file" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'maxFileSize: 1000000' > "$BATS_TMPDIR/test-store/.mgreprc.yaml"
+
+    echo "mini" > "$BATS_TMPDIR/test-store/mini.txt"
+    dd if=/dev/zero bs=100 count=1 2>/dev/null | tr '\0' 'z' > "$BATS_TMPDIR/test-store/bigger.txt"
+
+    cd "$BATS_TMPDIR/test-store"
+    export MGREP_MAX_FILE_SIZE=50
+    run mgrep watch --dry-run
+    unset MGREP_MAX_FILE_SIZE
+
+    assert_success
+    assert_output --partial 'mini.txt'
+    refute_output --partial 'bigger.txt'
+}
