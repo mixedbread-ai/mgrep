@@ -169,13 +169,17 @@ export const watch = new Command("watch")
     "Dry run the watch process (no actual file syncing)",
     false,
   )
-  .option("--max-file-size <bytes>", "Maximum file size in bytes to upload", (value) => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed) || parsed <= 0) {
-      throw new InvalidArgumentError("Must be a positive integer.");
-    }
-    return parsed;
-  })
+  .option(
+    "--max-file-size <bytes>",
+    "Maximum file size in bytes to upload",
+    (value) => {
+      const parsed = Number.parseInt(value, 10);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new InvalidArgumentError("Must be a positive integer.");
+      }
+      return parsed;
+    },
+  )
   .description("Watch for file changes")
   .action(async (_args, cmd) => {
     const options: WatchOptions = cmd.optsWithGlobals();

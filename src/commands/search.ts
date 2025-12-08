@@ -204,13 +204,17 @@ export const search: Command = new CommanderCommand("search")
     "Disable reranking of search results",
     parseBooleanEnv(process.env.MGREP_RERANK, true), // `true` here means that reranking is enabled by default
   )
-  .option("--max-file-size <bytes>", "Maximum file size in bytes to upload", (value) => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed) || parsed <= 0) {
-      throw new InvalidArgumentError("Must be a positive integer.");
-    }
-    return parsed;
-  })
+  .option(
+    "--max-file-size <bytes>",
+    "Maximum file size in bytes to upload",
+    (value) => {
+      const parsed = Number.parseInt(value, 10);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new InvalidArgumentError("Must be a positive integer.");
+      }
+      return parsed;
+    },
+  )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
