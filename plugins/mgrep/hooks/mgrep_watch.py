@@ -8,7 +8,7 @@ from pathlib import Path
 DEBUG_LOG_FILE = Path(os.environ.get("MGREP_WATCH_LOG", "/tmp/mgrep-watch.log"))
 
 
-def debug_log(message: str) -> None:
+def debug_log(message: str):
     try:
         DEBUG_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -18,7 +18,7 @@ def debug_log(message: str) -> None:
         pass
 
 
-def read_hook_input() -> dict[str, object] | None:
+def read_hook_input():
     raw = sys.stdin.read()
     if not raw.strip():
         return None
