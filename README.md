@@ -19,6 +19,9 @@
 </div>
 
 ## Why mgrep?
+
+[![Run in Smithery](https://smithery.ai/badge/skills/mixedbread-ai)](https://smithery.ai/skills?ns=mixedbread-ai&utm_source=github&utm_medium=badge)
+
 - Natural-language search that feels as immediate as `grep`.
 - Semantic, multilingual & multimodal (audio, video support coming soon!)
 - Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
