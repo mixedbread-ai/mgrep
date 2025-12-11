@@ -381,3 +381,10 @@ teardown() {
     assert_output --partial 'mini.txt'
     refute_output --partial 'bigger.txt'
 }
+
+@test "Search with web flag" {
+    run mgrep search --web test
+
+    assert_success
+    assert_output --partial 'test.txt'
+}

@@ -91,10 +91,10 @@ export interface Store {
   deleteFile(storeId: string, externalId: string): Promise<void>;
 
   /**
-   * Search in a store
+   * Search in one or more stores
    */
   search(
-    storeId: string,
+    storeIds: string[],
     query: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
@@ -112,10 +112,10 @@ export interface Store {
   create(options: CreateStoreOptions): Promise<unknown>;
 
   /**
-   * Ask a question to a store
+   * Ask a question to one or more stores
    */
   ask(
-    storeId: string,
+    storeIds: string[],
     question: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
@@ -205,7 +205,7 @@ export class MixedbreadStore implements Store {
   }
 
   async search(
-    storeId: string,
+    storeIds: string[],
     query: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
@@ -213,7 +213,7 @@ export class MixedbreadStore implements Store {
   ): Promise<SearchResponse> {
     const response = await this.client.stores.search({
       query,
-      store_identifiers: [storeId],
+      store_identifiers: storeIds,
       top_k,
       search_options,
       filters,
@@ -236,7 +236,7 @@ export class MixedbreadStore implements Store {
   }
 
   async ask(
-    storeId: string,
+    storeIds: string[],
     question: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
@@ -244,7 +244,7 @@ export class MixedbreadStore implements Store {
   ): Promise<AskResponse> {
     const response = await this.client.stores.questionAnswering({
       query: question,
-      store_identifiers: [storeId],
+      store_identifiers: storeIds,
       top_k,
       search_options,
       filters,
@@ -417,7 +417,7 @@ export class TestStore implements Store {
   }
 
   async search(
-    _storeId: string,
+    _storeIds: string[],
     query: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
@@ -482,14 +482,14 @@ export class TestStore implements Store {
   }
 
   async ask(
-    storeId: string,
+    storeIds: string[],
     question: string,
     top_k?: number,
     search_options?: { rerank?: boolean },
     filters?: SearchFilter,
   ): Promise<AskResponse> {
     const searchRes = await this.search(
-      storeId,
+      storeIds,
       question,
       top_k,
       search_options,

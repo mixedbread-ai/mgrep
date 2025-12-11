@@ -75,8 +75,22 @@ function formatSearchResponse(response: SearchResponse, show_content: boolean) {
     .join("\n");
 }
 
+function isWebResult(chunk: ChunkType): boolean {
+  return (
+    "filename" in chunk &&
+    typeof chunk.filename === "string" &&
+    chunk.filename.startsWith("http")
+  );
+}
+
 function formatChunk(chunk: ChunkType, show_content: boolean) {
   const pwd = process.cwd();
+
+  if (isWebResult(chunk) && chunk.type === "text") {
+    const url = "filename" in chunk ? chunk.filename : "Unknown URL";
+    return `${url} (${(chunk.score * 100).toFixed(2)}% match)`;
+  }
+
   const path =
     (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
   let line_range = "";
@@ -215,6 +229,11 @@ export const search: Command = new CommanderCommand("search")
       return parsed;
     },
   )
+  .option(
+    "-w, --web",
+    "Include web search results from mixedbread/web store",
+    parseBooleanEnv(process.env.MGREP_WEB, false),
+  )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -229,6 +248,7 @@ export const search: Command = new CommanderCommand("search")
       dryRun: boolean;
       rerank: boolean;
       maxFileSize?: number;
+      web: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -260,39 +280,39 @@ export const search: Command = new CommanderCommand("search")
         ? exec_path
         : normalize(join(root, exec_path ?? ""));
 
-      let response: string;
-      if (!options.answer) {
-        const results = await store.search(
-          options.store,
-          pattern,
-          parseInt(options.maxCount, 10),
-          { rerank: options.rerank },
-          {
+      const storeIds = options.web
+        ? [options.store, "mixedbread/web"]
+        : [options.store];
+
+      const filters = options.web
+        ? undefined
+        : {
             all: [
               {
                 key: "path",
-                operator: "starts_with",
+                operator: "starts_with" as const,
                 value: search_path,
               },
             ],
-          },
+          };
+
+      let response: string;
+      if (!options.answer) {
+        const results = await store.search(
+          storeIds,
+          pattern,
+          parseInt(options.maxCount, 10),
+          { rerank: options.rerank },
+          filters,
         );
         response = formatSearchResponse(results, options.content);
       } else {
         const results = await store.ask(
-          options.store,
+          storeIds,
           pattern,
           parseInt(options.maxCount, 10),
           { rerank: options.rerank },
-          {
-            all: [
-              {
-                key: "path",
-                operator: "starts_with",
-                value: search_path,
-              },
-            ],
-          },
+          filters,
         );
         response = formatAskResponse(results, options.content);
       }
