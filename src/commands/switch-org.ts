@@ -4,8 +4,8 @@ import { Command } from "commander";
 import {
   getCurrentOrganization,
   selectOrganization,
-} from "../lib/organizations";
-import { getStoredToken } from "../lib/token";
+} from "../lib/organizations.js";
+import { getStoredToken } from "../lib/token.js";
 
 export async function switchOrgAction() {
   intro(chalk.bold("🔄 Switch Organization"));

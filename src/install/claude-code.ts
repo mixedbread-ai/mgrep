@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { Command } from "commander";
-import { ensureAuthenticated } from "../lib/utils";
+import { ensureAuthenticated } from "../lib/utils.js";
 
 const shell =
   process.env.SHELL ||

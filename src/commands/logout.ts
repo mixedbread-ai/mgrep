@@ -1,7 +1,7 @@
 import { outro } from "@clack/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { deleteToken, getStoredToken } from "../lib/token";
+import { deleteToken, getStoredToken } from "../lib/token.js";
 
 export async function logoutAction() {
   const token = await getStoredToken();

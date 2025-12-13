@@ -1,7 +1,7 @@
 import { cancel, isCancel, select } from "@clack/prompts";
 import type { Organization } from "better-auth/plugins/organization";
 import chalk from "chalk";
-import { authClient, SERVER_URL } from "./auth";
+import { authClient, SERVER_URL } from "./auth.js";
 
 export async function getCurrentOrganization(accessToken: string) {
   const { data: session } = await authClient.getSession({

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import ignore from "ignore";
-import type { Git } from "./git";
+import type { Git } from "./git.js";
 
 /**
  * Default glob patterns to ignore during file indexing.

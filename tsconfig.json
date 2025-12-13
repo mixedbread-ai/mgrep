@@ -8,12 +8,12 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "esModuleInterop": true,
-    "module": "CommonJS",
-    "target": "ES6",
+    "module": "NodeNext",
+    "target": "ES2022",
     "rootDir": "src",
     "incremental": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "moduleResolution": "node"
+    "moduleResolution": "NodeNext"
   }
 }

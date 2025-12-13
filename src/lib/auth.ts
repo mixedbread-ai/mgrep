@@ -3,8 +3,8 @@ import {
   deviceAuthorizationClient,
   organizationClient,
 } from "better-auth/client/plugins";
-import { getStoredToken } from "./token";
-import { isDevelopment } from "./utils";
+import { getStoredToken } from "./token.js";
+import { isDevelopment } from "./utils.js";
 
 export const SERVER_URL = isDevelopment()
   ? "http://localhost:3001"

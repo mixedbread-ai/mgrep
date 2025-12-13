@@ -5,21 +5,21 @@ import {
   type CliConfigOptions,
   loadConfig,
   type MgrepConfig,
-} from "../lib/config";
-import { createFileSystem, createStore } from "../lib/context";
-import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
+} from "../lib/config.js";
+import { createFileSystem, createStore } from "../lib/context.js";
+import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
 import type {
   AskResponse,
   ChunkType,
   FileMetadata,
   SearchResponse,
   Store,
-} from "../lib/store";
+} from "../lib/store.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
-} from "../lib/sync-helpers";
-import { initialSync, QuotaExceededError } from "../lib/utils";
+} from "../lib/sync-helpers.js";
+import { initialSync, QuotaExceededError } from "../lib/utils.js";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};

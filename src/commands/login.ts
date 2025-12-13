@@ -3,9 +3,9 @@ import chalk from "chalk";
 import { Command } from "commander";
 import open from "open";
 import yoctoSpinner from "yocto-spinner";
-import { authClient } from "../lib/auth";
-import { selectOrganization } from "../lib/organizations";
-import { getStoredToken, pollForToken, storeToken } from "../lib/token";
+import { authClient } from "../lib/auth.js";
+import { selectOrganization } from "../lib/organizations.js";
+import { getStoredToken, pollForToken, storeToken } from "../lib/token.js";
 
 const CLIENT_ID = "mgrep";
 

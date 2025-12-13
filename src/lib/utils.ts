@@ -4,13 +4,13 @@ import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
-import { loginAction } from "../commands/login";
-import { exceedsMaxFileSize, type MgrepConfig } from "./config";
-import type { FileSystem } from "./file";
-import type { Store } from "./store";
-import type { InitialSyncProgress, InitialSyncResult } from "./sync-helpers";
+import { loginAction } from "../commands/login.js";
+import { exceedsMaxFileSize, type MgrepConfig } from "./config.js";
+import type { FileSystem } from "./file.js";
+import type { Store } from "./store.js";
+import type { InitialSyncProgress, InitialSyncResult } from "./sync-helpers.js";
 
-import { getStoredToken } from "./token";
+import { getStoredToken } from "./token.js";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 

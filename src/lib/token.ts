@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import chalk from "chalk";
 import yoctoSpinner from "yocto-spinner";
-import { type AuthClient, SERVER_URL } from "./auth";
+import { type AuthClient, SERVER_URL } from "./auth.js";
 
 const CONFIG_DIR = path.join(os.homedir(), ".mgrep");
 const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");

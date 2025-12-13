@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Command } from "commander";
-import { startWatch } from "./watch";
+import { startWatch } from "./watch.js";
 
 export const watchMcp = new Command("mcp")
   .description("Start MCP server for mgrep")

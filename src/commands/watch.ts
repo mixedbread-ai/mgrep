@@ -1,19 +1,19 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Command, InvalidArgumentError } from "commander";
-import { type CliConfigOptions, loadConfig } from "../lib/config";
-import { createFileSystem, createStore } from "../lib/context";
-import { DEFAULT_IGNORE_PATTERNS } from "../lib/file";
+import { type CliConfigOptions, loadConfig } from "../lib/config.js";
+import { createFileSystem, createStore } from "../lib/context.js";
+import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
-} from "../lib/sync-helpers";
+} from "../lib/sync-helpers.js";
 import {
   deleteFile,
   initialSync,
   QuotaExceededError,
   uploadFile,
-} from "../lib/utils";
+} from "../lib/utils.js";
 
 export interface WatchOptions {
   store: string;

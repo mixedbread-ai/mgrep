@@ -1,13 +1,13 @@
 import Mixedbread from "@mixedbread/sdk";
-import { getJWTToken } from "./auth";
+import { getJWTToken } from "./auth.js";
 import {
   type FileSystem,
   type FileSystemOptions,
   NodeFileSystem,
-} from "./file";
-import { type Git, NodeGit } from "./git";
-import { MixedbreadStore, type Store, TestStore } from "./store";
-import { ensureAuthenticated, isDevelopment, isTest } from "./utils";
+} from "./file.js";
+import { type Git, NodeGit } from "./git.js";
+import { MixedbreadStore, type Store, TestStore } from "./store.js";
+import { ensureAuthenticated, isDevelopment, isTest } from "./utils.js";
 
 const BASE_URL = isDevelopment()
   ? "http://localhost:8000"

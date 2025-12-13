@@ -1,8 +1,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { ensureAuthenticated } from "../lib/utils";
+import { ensureAuthenticated } from "../lib/utils.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PLUGIN_ROOT =
   process.env.DROID_PLUGIN_ROOT ||

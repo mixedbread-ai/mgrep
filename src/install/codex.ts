@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { Command } from "commander";
-import { ensureAuthenticated } from "../lib/utils";
+import { ensureAuthenticated } from "../lib/utils.js";
 
 const shell =
   process.env.SHELL ||
