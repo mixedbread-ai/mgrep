@@ -284,17 +284,15 @@ export const search: Command = new CommanderCommand("search")
         ? [options.store, "mixedbread/web"]
         : [options.store];
 
-      const filters = options.web
-        ? undefined
-        : {
-            all: [
-              {
-                key: "path",
-                operator: "starts_with" as const,
-                value: search_path,
-              },
-            ],
-          };
+      const filters = {
+        all: [
+          {
+            key: "path",
+            operator: "starts_with" as const,
+            value: search_path,
+          },
+        ],
+      };
 
       let response: string;
       if (!options.answer) {
