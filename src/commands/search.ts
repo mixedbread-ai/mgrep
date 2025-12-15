@@ -88,7 +88,8 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
 
   if (isWebResult(chunk) && chunk.type === "text") {
     const url = "filename" in chunk ? chunk.filename : "Unknown URL";
-    return `${url} (${(chunk.score * 100).toFixed(2)}% match)`;
+    const content = show_content ? chunk.text : "";
+    return `${url} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
   }
 
   const path =
