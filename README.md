@@ -21,6 +21,7 @@
 ## Why mgrep?
 - Natural-language search that feels as immediate as `grep`.
 - Semantic, multilingual & multimodal (audio, video support coming soon!)
+- Web search built-in — query the web alongside your local files with `--web`.
 - Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
 - Friendly device-login flow and first-class coding agent integrations.
 - Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
@@ -121,6 +122,21 @@ We designed `mgrep` to complement `grep`, not replace it. The best code search c
 | **Exact Matches** | **Intent Search** |
 | Symbol tracing, Refactoring, Regex | Code exploration, Feature discovery, Onboarding |
 
+## Web Search
+
+`mgrep` can also search the web alongside your local files. This is useful when
+you need to find documentation, tutorials, or answers to programming questions
+without leaving your terminal.
+
+```bash
+# Search the web and get a summarized answer
+mgrep --web --answer "How do I integrate a JavaScript runtime into Deno?"
+
+# Get the urls of the search
+mgrep --web "best practices for error handling in TypeScript"
+```
+
+Web search queries the `mixedbread/web` store in addition to your local store, merging results based on relevance. Use `--answer` (or `-a`) to get a concise summary instead of raw results.
 
 ## Commands at a Glance
 
@@ -144,6 +160,7 @@ directory for a pattern.
 | `-m <max_count>` | The maximum number of results to return |
 | `-c`, `--content` | Show content of the results |
 | `-a`, `--answer` | Generate an answer to the question based on the results |
+| `-w`, `--web` | Include web search results alongside local files |
 | `-s`, `--sync` | Sync the local files to the store before searching |
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
 | `--no-rerank` | Disable reranking of search results |
@@ -158,6 +175,7 @@ mgrep "What code parsers are available?"  # search in the current directory
 mgrep "How are chunks defined?" src/models  # search in the src/models directory
 mgrep -m 10 "What is the maximum number of concurrent workers in the code parser?"  # limit the number of results to 10
 mgrep -a "What code parsers are available?"  # generate an answer to the question based on the results
+mgrep --web --answer "How do I integrate a JavaScript runtime into Deno?"  # search the web and get a summarized answer
 ```
 
 ### mgrep watch
@@ -232,6 +250,7 @@ searches.
 - `MGREP_MAX_COUNT`: Maximum number of results to return (default: `10`)
 - `MGREP_CONTENT`: Show content of the results (set to `1` or `true` to enable)
 - `MGREP_ANSWER`: Generate an answer based on the results (set to `1` or `true` to enable)
+- `MGREP_WEB`: Include web search results (set to `1` or `true` to enable)
 - `MGREP_SYNC`: Sync files before searching (set to `1` or `true` to enable)
 - `MGREP_DRY_RUN`: Enable dry run mode (set to `1` or `true` to enable)
 - `MGREP_RERANK`: Enable reranking of search results (set to `0` or `false` to disable, default: enabled)
