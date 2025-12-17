@@ -19,7 +19,11 @@ import {
   createIndexingSpinner,
   formatDryRunSummary,
 } from "../lib/sync-helpers.js";
-import { initialSync, QuotaExceededError } from "../lib/utils.js";
+import {
+  initialSync,
+  isAtOrAboveHomeDirectory,
+  QuotaExceededError,
+} from "../lib/utils.js";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
   const sources: { [key: number]: ChunkType } = {};
@@ -261,6 +265,21 @@ export const search: Command = new CommanderCommand("search")
     };
     const config = loadConfig(root, cliOptions);
 
+    const search_path = exec_path?.startsWith("/")
+      ? exec_path
+      : normalize(join(root, exec_path ?? ""));
+
+    if (options.sync && isAtOrAboveHomeDirectory(search_path)) {
+      console.error(
+        "Error: Cannot sync home directory or any parent directory.",
+      );
+      console.error(
+        "Please run this command from within a specific project subdirectory.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+
     try {
       const store = await createStore();
 
@@ -276,10 +295,6 @@ export const search: Command = new CommanderCommand("search")
           return;
         }
       }
-
-      const search_path = exec_path?.startsWith("/")
-        ? exec_path
-        : normalize(join(root, exec_path ?? ""));
 
       const storeIds = options.web
         ? [options.store, "mixedbread/web"]

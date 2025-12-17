@@ -389,6 +389,21 @@ teardown() {
     assert_output --partial 'test.txt'
 }
 
+@test "Search allows home directory without sync" {
+    cd "$HOME"
+    run mgrep search test
+
+    assert_success
+}
+
+@test "Search with sync rejects home directory" {
+    cd "$HOME"
+    run mgrep search --sync test
+
+    assert_failure
+    assert_output --partial 'Cannot sync home directory'
+}
+
 @test "Sync from folder does not include files from folder with same prefix" {
     mkdir -p "$BATS_TMPDIR/test-store/foo"
     mkdir -p "$BATS_TMPDIR/test-store/foobar"

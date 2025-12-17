@@ -11,6 +11,7 @@ import {
 import {
   deleteFile,
   initialSync,
+  isAtOrAboveHomeDirectory,
   QuotaExceededError,
   uploadFile,
 } from "../lib/utils.js";
@@ -48,6 +49,18 @@ export async function startWatch(options: WatchOptions): Promise<void> {
       ignorePatterns: [...DEFAULT_IGNORE_PATTERNS],
     });
     const watchRoot = process.cwd();
+
+    if (isAtOrAboveHomeDirectory(watchRoot)) {
+      console.error(
+        "Error: Cannot watch home directory or any parent directory.",
+      );
+      console.error(
+        "Please run this command from within a specific project subdirectory.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
     };

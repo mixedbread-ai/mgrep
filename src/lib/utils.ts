@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
@@ -42,6 +43,33 @@ function isSubpath(parent: string, child: string): boolean {
     : parentPath + path.sep;
 
   return childPath.startsWith(parentWithSep);
+}
+
+/**
+ * Checks if a path is at or above the home directory.
+ * Returns true if the path is the home directory, a parent of it, or the root.
+ *
+ * @param targetPath - The path to check
+ * @returns true if the path is at or above home directory, false if it's a subdirectory of home
+ */
+export function isAtOrAboveHomeDirectory(targetPath: string): boolean {
+  const homeDir = os.homedir();
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedHome = path.resolve(homeDir);
+
+  if (resolvedTarget === resolvedHome) {
+    return true;
+  }
+
+  const targetWithSep = resolvedTarget.endsWith(path.sep)
+    ? resolvedTarget
+    : resolvedTarget + path.sep;
+
+  if (resolvedHome.startsWith(targetWithSep)) {
+    return true;
+  }
+
+  return false;
 }
 
 const XXHASH_PREFIX = "xxh64:";
