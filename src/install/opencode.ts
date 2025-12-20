@@ -123,7 +123,7 @@ async function installPlugin() {
     if (!configJson.$schema) {
       configJson.$schema = "https://opencode.ai/config.json";
     }
-    if (!configJson.mcp || typeof configJson.mcp !== "object") {
+    if (!configJson.mcp) {
       configJson.mcp = {};
     }
     configJson.mcp.mgrep = {
@@ -156,13 +156,13 @@ async function uninstallPlugin() {
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, "utf-8");
       const configJson = parseConfigFile(configPath, configContent);
-      if (configJson.mcp && typeof configJson.mcp === "object") {
+      if (configJson.mcp) {
         delete configJson.mcp.mgrep;
       }
       fs.writeFileSync(configPath, stringify(configJson, null, 2));
-      console.log("Successfully removed the mgrep from the OpenCode agent");
+      console.log("Successfully removed the mgrep tool from the OpenCode agent");
     } else {
-      console.log("The mgrep is not installed in the OpenCode agent");
+      console.log("The mgrep tool is not installed in the OpenCode agent");
     }
   } catch (error) {
     console.error(`Error uninstalling plugin: ${error}`);
