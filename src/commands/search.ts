@@ -287,7 +287,7 @@ export const search: Command = new CommanderCommand("search")
         const shouldReturn = await syncFiles(
           store,
           options.store,
-          root,
+          search_path,
           options.dryRun,
           config,
         );
