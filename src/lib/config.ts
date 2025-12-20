@@ -8,8 +8,8 @@ const LOCAL_CONFIG_FILES = [".mgreprc.yaml", ".mgreprc.yml"] as const;
 const GLOBAL_CONFIG_DIR = ".config/mgrep";
 const GLOBAL_CONFIG_FILES = ["config.yaml", "config.yml"] as const;
 const ENV_PREFIX = "MGREP_";
-const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024;
-const DEFAULT_MAX_FILE_COUNT = 10000;
+const DEFAULT_MAX_FILE_SIZE = 1 * 1024 * 1024;
+const DEFAULT_MAX_FILE_COUNT = 1000;
 
 const ConfigSchema = z.object({
   maxFileSize: z.number().positive().optional(),

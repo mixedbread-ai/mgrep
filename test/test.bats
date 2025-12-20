@@ -259,7 +259,7 @@ teardown() {
     git add .
     git commit -m "Initial commit with many files"
     
-    run mgrep search --sync "Content"
+    run mgrep search --max-file-count 1000000 --sync "Content"
     
     assert_success
     assert [ $(echo "$output" | grep -c "very-long-filename") -gt 0 ]
