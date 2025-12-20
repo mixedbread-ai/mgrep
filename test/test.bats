@@ -388,3 +388,24 @@ teardown() {
     assert_success
     assert_output --partial 'test.txt'
 }
+
+@test "Sync from folder does not include files from folder with same prefix" {
+    mkdir -p "$BATS_TMPDIR/test-store/foo"
+    mkdir -p "$BATS_TMPDIR/test-store/foobar"
+    echo "File in foo" > "$BATS_TMPDIR/test-store/foo/file-in-foo.txt"
+    echo "File in foobar" > "$BATS_TMPDIR/test-store/foobar/file-in-foobar.txt"
+
+    cd "$BATS_TMPDIR/test-store/foobar"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'file-in-foobar.txt'
+    refute_output --partial 'file-in-foo.txt'
+
+    cd "$BATS_TMPDIR/test-store/foo"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'file-in-foo.txt'
+    refute_output --partial 'file-in-foobar.txt'
+}
