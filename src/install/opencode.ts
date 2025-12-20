@@ -2,7 +2,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
+import { parse, stringify } from "comment-json";
 import { ensureAuthenticated } from "../lib/utils.js";
+
+type McpEntry = {
+  type: "local";
+  command: string[];
+  enabled: boolean;
+};
+
+type OpenCodeConfig = {
+  $schema?: string;
+  mcp?: Record<string, McpEntry>;
+} & Record<string, unknown>;
 
 const TOOL_PATH = path.join(
   os.homedir(),
@@ -11,12 +23,29 @@ const TOOL_PATH = path.join(
   "tool",
   "mgrep.ts",
 );
-const MCP_PATH = path.join(
-  os.homedir(),
-  ".config",
-  "opencode",
-  "opencode.json",
-);
+
+function resolveConfigPath(): string {
+  const configDir = path.join(os.homedir(), ".config", "opencode");
+  const jsonPath = path.join(configDir, "opencode.json");
+  const jsoncPath = path.join(configDir, "opencode.jsonc");
+
+  if (fs.existsSync(jsonPath)) return jsonPath;
+  if (fs.existsSync(jsoncPath)) return jsoncPath;
+  return jsonPath;
+}
+
+function parseConfigFile(filePath: string, content: string): OpenCodeConfig {
+  if (!content.trim()) return {};
+
+  try {
+    return parse(content) as OpenCodeConfig;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to parse config file "${filePath}": ${message}\nPlease fix the syntax error in your configuration file.`,
+    );
+  }
+}
 
 const TOOL_DEFINITION = `
 import { tool } from "@opencode-ai/plugin"
@@ -83,25 +112,26 @@ async function installPlugin() {
       console.log("The mgrep tool is already installed");
     }
 
-    fs.mkdirSync(path.dirname(MCP_PATH), { recursive: true });
+    const configPath = resolveConfigPath();
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
 
-    if (!fs.existsSync(MCP_PATH)) {
-      fs.writeFileSync(MCP_PATH, JSON.stringify({}, null, 2));
+    if (!fs.existsSync(configPath)) {
+      fs.writeFileSync(configPath, stringify({}, null, 2));
     }
-    const mcpContent = fs.readFileSync(MCP_PATH, "utf-8");
-    const mcpJson = JSON.parse(mcpContent);
-    if (!mcpJson.$schema) {
-      mcpJson.$schema = "https://opencode.ai/config.json";
+    const configContent = fs.readFileSync(configPath, "utf-8");
+    const configJson = parseConfigFile(configPath, configContent);
+    if (!configJson.$schema) {
+      configJson.$schema = "https://opencode.ai/config.json";
     }
-    if (!mcpJson.mcp) {
-      mcpJson.mcp = {};
+    if (!configJson.mcp || typeof configJson.mcp !== "object") {
+      configJson.mcp = {};
     }
-    mcpJson.mcp.mgrep = {
+    configJson.mcp.mgrep = {
       type: "local",
       command: ["mgrep", "mcp"],
       enabled: true,
     };
-    fs.writeFileSync(MCP_PATH, JSON.stringify(mcpJson, null, 2));
+    fs.writeFileSync(configPath, stringify(configJson, null, 2));
     console.log("Successfully installed the mgrep tool in the OpenCode agent");
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -122,11 +152,14 @@ async function uninstallPlugin() {
       console.log("The mgrep tool is not installed in the OpenCode agent");
     }
 
-    if (fs.existsSync(MCP_PATH)) {
-      const mcpContent = fs.readFileSync(MCP_PATH, "utf-8");
-      const mcpJson = JSON.parse(mcpContent);
-      delete mcpJson.mcp.mgrep;
-      fs.writeFileSync(MCP_PATH, JSON.stringify(mcpJson, null, 2));
+    const configPath = resolveConfigPath();
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, "utf-8");
+      const configJson = parseConfigFile(configPath, configContent);
+      if (configJson.mcp && typeof configJson.mcp === "object") {
+        delete configJson.mcp.mgrep;
+      }
+      fs.writeFileSync(configPath, stringify(configJson, null, 2));
       console.log("Successfully removed the mgrep from the OpenCode agent");
     } else {
       console.log("The mgrep is not installed in the OpenCode agent");
