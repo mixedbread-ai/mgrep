@@ -12,6 +12,7 @@ import {
   deleteFile,
   initialSync,
   isAtOrAboveHomeDirectory,
+  MaxFileCountExceededError,
   QuotaExceededError,
   uploadFile,
 } from "../lib/utils.js";
@@ -20,6 +21,7 @@ export interface WatchOptions {
   store: string;
   dryRun: boolean;
   maxFileSize?: number;
+  maxFileCount?: number;
 }
 
 export async function startWatch(options: WatchOptions): Promise<void> {
@@ -63,6 +65,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
 
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
+      maxFileCount: options.maxFileCount,
     };
     const config = loadConfig(watchRoot, cliOptions);
     console.debug("Watching for file changes in", watchRoot);
@@ -119,6 +122,14 @@ export async function startWatch(options: WatchOptions): Promise<void> {
         );
         console.error(
           "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
+        );
+        process.exit(1);
+      }
+      if (e instanceof MaxFileCountExceededError) {
+        spinner.fail("File count exceeded");
+        console.error(`\n❌ ${e.message}`);
+        console.error(
+          "   Increase the limit with --max-file-count or MGREP_MAX_FILE_COUNT environment variable.\n",
         );
         process.exit(1);
       }
@@ -185,6 +196,17 @@ export const watch = new Command("watch")
   .option(
     "--max-file-size <bytes>",
     "Maximum file size in bytes to upload",
+    (value) => {
+      const parsed = Number.parseInt(value, 10);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new InvalidArgumentError("Must be a positive integer.");
+      }
+      return parsed;
+    },
+  )
+  .option(
+    "--max-file-count <count>",
+    "Maximum number of files to upload",
     (value) => {
       const parsed = Number.parseInt(value, 10);
       if (Number.isNaN(parsed) || parsed <= 0) {

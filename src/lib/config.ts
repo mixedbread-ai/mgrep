@@ -9,9 +9,11 @@ const GLOBAL_CONFIG_DIR = ".config/mgrep";
 const GLOBAL_CONFIG_FILES = ["config.yaml", "config.yml"] as const;
 const ENV_PREFIX = "MGREP_";
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024;
+const DEFAULT_MAX_FILE_COUNT = 10000;
 
 const ConfigSchema = z.object({
   maxFileSize: z.number().positive().optional(),
+  maxFileCount: z.number().positive().optional(),
 });
 
 /**
@@ -19,6 +21,7 @@ const ConfigSchema = z.object({
  */
 export interface CliConfigOptions {
   maxFileSize?: number;
+  maxFileCount?: number;
 }
 
 /**
@@ -31,10 +34,18 @@ export interface MgrepConfig {
    * @default 10485760 (10 MB)
    */
   maxFileSize: number;
+
+  /**
+   * Maximum number of files that can be uploaded in a single sync operation.
+   * If the folder contains more files than this limit, an error will be thrown.
+   * @default 10000
+   */
+  maxFileCount: number;
 }
 
 const DEFAULT_CONFIG: MgrepConfig = {
   maxFileSize: DEFAULT_MAX_FILE_SIZE,
+  maxFileCount: DEFAULT_MAX_FILE_COUNT,
 };
 
 const configCache = new Map<string, MgrepConfig>();
@@ -105,13 +116,21 @@ function loadEnvConfig(): Partial<MgrepConfig> {
     }
   }
 
+  const maxFileCountEnv = process.env[`${ENV_PREFIX}MAX_FILE_COUNT`];
+  if (maxFileCountEnv) {
+    const parsed = Number.parseInt(maxFileCountEnv, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      config.maxFileCount = parsed;
+    }
+  }
+
   return config;
 }
 
 /**
  * Loads mgrep configuration with the following precedence (highest to lowest):
  * 1. CLI flags (passed as cliOptions)
- * 2. Environment variables (MGREP_MAX_FILE_SIZE)
+ * 2. Environment variables (MGREP_MAX_FILE_SIZE, MGREP_MAX_FILE_COUNT)
  * 3. Local config file (.mgreprc.yaml or .mgreprc.yml in project directory)
  * 4. Global config file (~/.config/mgrep/config.yaml or config.yml)
  * 5. Default values
@@ -153,6 +172,9 @@ function filterUndefinedCliOptions(
   const result: Partial<MgrepConfig> = {};
   if (options.maxFileSize !== undefined) {
     result.maxFileSize = options.maxFileSize;
+  }
+  if (options.maxFileCount !== undefined) {
+    result.maxFileCount = options.maxFileCount;
   }
   return result;
 }

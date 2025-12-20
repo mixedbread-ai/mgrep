@@ -389,6 +389,87 @@ teardown() {
     assert_output --partial 'test.txt'
 }
 
+@test "Config maxFileCount fails when exceeded" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    mkdir -p "$BATS_TMPDIR/max-file-count-test"
+    cd "$BATS_TMPDIR/max-file-count-test"
+    for i in {1..5}; do
+        echo "file $i" > "file-$i.txt"
+    done
+
+    run mgrep watch --dry-run --max-file-count 3
+
+    assert_failure
+    assert_output --partial 'File count (5) exceeds the maximum allowed (3)'
+    assert_output --partial 'No files were uploaded'
+}
+
+@test "Config maxFileCount succeeds when not exceeded" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    mkdir -p "$BATS_TMPDIR/max-file-count-pass-test"
+    cd "$BATS_TMPDIR/max-file-count-pass-test"
+    for i in {1..3}; do
+        echo "file $i" > "file-$i.txt"
+    done
+
+    run mgrep watch --dry-run --max-file-count 5
+
+    assert_success
+    assert_output --partial 'file-1.txt'
+}
+
+@test "Config maxFileCount via YAML" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    mkdir -p "$BATS_TMPDIR/max-file-count-yaml-test"
+    cd "$BATS_TMPDIR/max-file-count-yaml-test"
+    echo 'maxFileCount: 2' > ".mgreprc.yaml"
+    for i in {1..4}; do
+        echo "file $i" > "file-$i.txt"
+    done
+
+    run mgrep watch --dry-run
+
+    assert_failure
+    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+}
+
+@test "Config maxFileCount env variable" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    mkdir -p "$BATS_TMPDIR/max-file-count-env-test"
+    cd "$BATS_TMPDIR/max-file-count-env-test"
+    for i in {1..4}; do
+        echo "file $i" > "file-$i.txt"
+    done
+
+    export MGREP_MAX_FILE_COUNT=2
+    run mgrep watch --dry-run
+    unset MGREP_MAX_FILE_COUNT
+
+    assert_failure
+    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+}
+
+@test "Config maxFileCount CLI overrides env variable" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    mkdir -p "$BATS_TMPDIR/max-file-count-override-test"
+    cd "$BATS_TMPDIR/max-file-count-override-test"
+    for i in {1..4}; do
+        echo "file $i" > "file-$i.txt"
+    done
+
+    export MGREP_MAX_FILE_COUNT=100
+    run mgrep watch --dry-run --max-file-count 2
+    unset MGREP_MAX_FILE_COUNT
+
+    assert_failure
+    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+}
+
 @test "Search allows home directory without sync" {
     cd "$HOME"
     run mgrep search test

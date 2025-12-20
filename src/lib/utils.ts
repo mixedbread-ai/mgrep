@@ -24,6 +24,16 @@ export class QuotaExceededError extends Error {
   }
 }
 
+/** Error thrown when the file count exceeds the configured limit */
+export class MaxFileCountExceededError extends Error {
+  constructor(fileCount: number, maxFileCount: number) {
+    super(
+      `File count (${fileCount}) exceeds the maximum allowed (${maxFileCount}). No files were uploaded.`,
+    );
+    this.name = "MaxFileCountExceededError";
+  }
+}
+
 /** Check if an error message indicates a quota/rate limit issue */
 function isQuotaError(errorMessage: string): boolean {
   return (
@@ -266,6 +276,11 @@ export async function initialSync(
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
   );
+
+  if (config && repoFiles.length > config.maxFileCount) {
+    throw new MaxFileCountExceededError(repoFiles.length, config.maxFileCount);
+  }
+
   const repoFileSet = new Set(repoFiles);
 
   const filesToDelete = Array.from(storeHashes.keys()).filter(

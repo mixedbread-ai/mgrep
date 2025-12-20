@@ -22,6 +22,7 @@ import {
 import {
   initialSync,
   isAtOrAboveHomeDirectory,
+  MaxFileCountExceededError,
   QuotaExceededError,
 } from "../lib/utils.js";
 
@@ -235,6 +236,17 @@ export const search: Command = new CommanderCommand("search")
     },
   )
   .option(
+    "--max-file-count <count>",
+    "Maximum number of files to upload",
+    (value) => {
+      const parsed = Number.parseInt(value, 10);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new InvalidArgumentError("Must be a positive integer.");
+      }
+      return parsed;
+    },
+  )
+  .option(
     "-w, --web",
     "Include web search results from mixedbread/web store",
     parseBooleanEnv(process.env.MGREP_WEB, false),
@@ -253,6 +265,7 @@ export const search: Command = new CommanderCommand("search")
       dryRun: boolean;
       rerank: boolean;
       maxFileSize?: number;
+      maxFileCount?: number;
       web: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
@@ -262,6 +275,7 @@ export const search: Command = new CommanderCommand("search")
     const root = process.cwd();
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
+      maxFileCount: options.maxFileCount,
     };
     const config = loadConfig(root, cliOptions);
 
@@ -339,6 +353,11 @@ export const search: Command = new CommanderCommand("search")
         );
         console.error(
           "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
+        );
+      } else if (error instanceof MaxFileCountExceededError) {
+        console.error(`${error.message}`);
+        console.error(
+          "   Increase the limit with --max-file-count or MGREP_MAX_FILE_COUNT environment variable.\n",
         );
       } else {
         const message =

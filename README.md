@@ -165,6 +165,7 @@ directory for a pattern.
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
 | `--no-rerank` | Disable reranking of search results |
 | `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
+| `--max-file-count <count>` | Maximum number of files to upload (overrides config) |
 
 All search options can also be configured via environment variables (see
 [Environment Variables](#environment-variables) section below).
@@ -191,11 +192,13 @@ root of the repository. The `.mgrepignore` file follows the same syntax as the
 | --- | --- |
 | `-d`, `--dry-run` | Dry run the watch process (no actual file syncing) |
 | `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
+| `--max-file-count <count>` | Maximum number of files to upload (overrides config) |
 
 **Examples:**
 ```bash
 mgrep watch  # index the current repository and keep the Mixedbread store in sync via file watchers
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
+mgrep watch --max-file-count 5000  # limit uploads to directories with 5000 files or fewer
 ```
 
 ## Mixedbread under the hood
@@ -218,11 +221,14 @@ Create a `.mgreprc.yaml` (or `.mgreprc.yml`) in your project root for local conf
 ```yaml
 # Maximum file size in bytes to upload (default: 10MB)
 maxFileSize: 5242880
+
+# Maximum number of files to upload (default: 10000)
+maxFileCount: 5000
 ```
 
 **Configuration precedence** (highest to lowest):
-1. CLI flags (`--max-file-size`)
-2. Environment variables (`MGREP_MAX_FILE_SIZE`)
+1. CLI flags (`--max-file-size`, `--max-file-count`)
+2. Environment variables (`MGREP_MAX_FILE_SIZE`, `MGREP_MAX_FILE_COUNT`)
 3. Local config file (`.mgreprc.yaml` in project directory)
 4. Global config file (`~/.config/mgrep/config.yaml`)
 5. Default values
@@ -258,6 +264,7 @@ searches.
 ### Sync Options
 
 - `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `10485760` / 10MB)
+- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `10000`)
 
 **Examples:**
 ```bash
