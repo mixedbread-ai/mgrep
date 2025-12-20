@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
+import xxhashWasm from "xxhash-wasm";
 import { loginAction } from "../commands/login.js";
 import { exceedsMaxFileSize, type MgrepConfig } from "./config.js";
 import type { FileSystem } from "./file.js";
@@ -43,16 +44,53 @@ function isSubpath(parent: string, child: string): boolean {
   return childPath.startsWith(parentWithSep);
 }
 
-export function computeBufferHash(buffer: Buffer): string {
+const XXHASH_PREFIX = "xxh64:";
+
+/** Lazily initialized xxhash instance */
+const xxhashPromise = xxhashWasm();
+
+/**
+ * Computes SHA-256 hash of a buffer (used for backward compatibility)
+ */
+function computeSha256Hash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
-export function computeFileHash(
+/**
+ * Computes xxhash64 hash of a buffer.
+ * Returns the hash prefixed with "xxh64:" to identify the algorithm.
+ */
+export async function computeBufferHash(buffer: Buffer): Promise<string> {
+  const { h64Raw } = await xxhashPromise;
+  const hash = h64Raw(new Uint8Array(buffer)).toString(16).padStart(16, "0");
+  return XXHASH_PREFIX + hash;
+}
+
+/**
+ * Computes a hash of the file using xxhash64.
+ */
+export async function computeFileHash(
   filePath: string,
   readFileSyncFn: (p: string) => Buffer,
-): string {
+): Promise<string> {
   const buffer = readFileSyncFn(filePath);
   return computeBufferHash(buffer);
+}
+
+/**
+ * Checks if a stored hash matches the computed hash of a buffer.
+ * Supports both old SHA-256 hashes (no prefix) and new xxhash64 hashes (xxh64: prefix).
+ */
+export async function hashesMatch(
+  storedHash: string,
+  buffer: Buffer,
+): Promise<boolean> {
+  if (storedHash.startsWith(XXHASH_PREFIX)) {
+    const computedHash = await computeBufferHash(buffer);
+    return storedHash === computedHash;
+  }
+  const computedSha256 = computeSha256Hash(buffer);
+  return storedHash === computedSha256;
 }
 
 export function isDevelopment(): boolean {
@@ -137,7 +175,7 @@ export async function uploadFile(
     return false;
   }
 
-  const hash = computeBufferHash(buffer);
+  const hash = await computeBufferHash(buffer);
   const options = {
     external_id: filePath,
     overwrite: true,
@@ -241,10 +279,12 @@ export async function initialSync(
           }
 
           const buffer = await fs.promises.readFile(filePath);
-          const hash = computeBufferHash(buffer);
           const existingHash = storeHashes.get(filePath);
           processed += 1;
-          const shouldUpload = !existingHash || existingHash !== hash;
+          const hashMatches = existingHash
+            ? await hashesMatch(existingHash, buffer)
+            : false;
+          const shouldUpload = !hashMatches;
           if (dryRun && shouldUpload) {
             console.log("Dry run: would have uploaded", filePath);
             uploaded += 1;
