@@ -18,23 +18,6 @@
   </p>
 </div>
 
-## Why mgrep?
-- Natural-language search that feels as immediate as `grep`.
-- Semantic, multilingual & multimodal (audio, video support coming soon!)
-- Web search built-in — query the web alongside your local files with `--web`.
-- Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
-- Friendly device-login flow and first-class coding agent integrations.
-- Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
-- Reduces the token usage of your agent by 2x while maintaining superior performance
-
-```bash
-# index once
-mgrep watch
-
-# then ask your repo things in natural language
-mgrep "where do we set up auth?"
-```
-
 ## Quick Start
 
 1. **Install**
@@ -69,8 +52,49 @@ mgrep "where do we set up auth?"
    ```
    Searches default to the current working directory unless you pass a path.
 
-**Today, `mgrep` works great on:** code, text, PDFs, images.  
+**Today, `mgrep` works great on:** code, text, PDFs, images.
 **Coming soon:** audio & video.
+
+## Why mgrep?
+
+- Natural-language search that feels as immediate as `grep`.
+- Semantic, multilingual & multimodal (audio, video support coming soon!)
+- Web search built-in — query the web alongside your local files with `--web`.
+- Smooth background indexing via `mgrep watch`, designed to detect and keep up-to-date everything that matters inside any git repository.
+- Friendly device-login flow and first-class coding agent integrations.
+- Built for agents and humans alike, and **designed to be a helpful tool**, not a restrictive harness: quiet output, thoughtful defaults, and escape hatches everywhere.
+- Reduces the token usage of your agent by 2x while maintaining superior performance
+
+`grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
+
+But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in the cases where you need it most, on large codebases.
+
+Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generations of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens.
+
+But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool.
+
+Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our full-featured search solution. It combines state-of-the-art semantic retrieval models with context-aware parsing and optimized inference methods to provide you with a natural language companion to `grep`.
+
+### When to use what
+
+We designed `mgrep` to complement `grep`, not replace it. The best code search combines `mgrep` with `grep`.
+
+| Use `grep` (or `ripgrep`) for... | Use `mgrep` for... |
+| --- | --- |
+| **Exact Matches** | **Intent Search** |
+| Symbol tracing, Refactoring, Regex | Code exploration, Feature discovery, Onboarding |
+
+## Benchmarks
+
+We plugged `mgrep` into Claude Code and ran a benchmark of 50 QA tasks to evaluate the economics of `mgrep` against `grep`.
+
+![mgrep benchmark](public/bench.jpg)
+
+In our 50-task benchmark, `mgrep`+Claude Code used ~2x fewer tokens than grep-based workflows at similar or better judged quality.
+
+`mgrep` finds the relevant snippets in a few semantic queries first, and the model spends its capacity on reasoning instead of scanning through irrelevant code from endless `grep` attempts. You can [Try it yourself](http://demo.mgrep.mixedbread.com).
+
+*Note: Win Rate (%) was calculated by using an LLM as a judge.*
 
 ## Using it with Coding Agents
 
@@ -88,57 +112,7 @@ it.
 
 More agents (Cursor, Windsurf, etc.) are on the way—this section will grow as soon as each integration lands.
 
-## Making your agent smarter
-
-We plugged `mgrep` into Claude Code and ran a benchmark of 50 QA tasks to evaluate the economics of `mgrep` against `grep`.
-
-![mgrep benchmark](public/bench.jpg)
-
-In our 50-task benchmark, `mgrep`+Claude Code used ~2x fewer tokens than grep-based workflows at similar or better judged quality.
-
-`mgrep` finds the relevant snippets in a few semantic queries first, and the model spends its capacity on reasoning instead of scanning through irrelevant code from endless `grep` attempts. You can [Try it yourself](http://demo.mgrep.mixedbread.com).
-
-*Note: Win Rate (%) was calculated by using an LLM as a judge.*
-
-## Why we built mgrep
-
-`grep` is an amazing tool. It's lightweight, compatible with just about every machine on the planet, and will reliably surface any potential match within any target folder.
-
-But grep is **from 1973**, and it carries the limitations of its era: you need exact patterns and it slows down considerably in the cases where you need it most, on large codebases.
-
-Worst of all, if you're looking for deeply-buried critical business logic, you cannot describe it: you have to be able to accurately guess what kind of naming patterns would have been used by the previous generations of engineers at your workplace for `grep` to find it. This will often result in watching a coding agent desperately try hundreds of patterns, filling its token window, and your upcoming invoice, with thousands of tokens. 
-
-But it doesn't have to be this way. Everything else in our toolkit is increasingly tailored to understand us, and so should our search tools. `mgrep` is our way to bring `grep` to 2025, integrating all of the advances in semantic understanding and code-search, without sacrificing anything that has made `grep` such a useful tool. 
-
-Under the hood, `mgrep` is powered by [Mixedbread Search](https://www.mixedbread.com/blog/mixedbread-search), our full-featured search solution. It combines state-of-the-art semantic retrieval models with context-aware parsing and optimized inference methods to provide you with a natural language companion to `grep`. We believe both tools belong in your toolkit: use `grep` for exact matches, `mgrep` for semantic understanding and intent.
-
-
-## When to use what
-
-We designed `mgrep` to complement `grep`, not replace it. The best code search combines `mgrep` with `grep`.
-
-| Use `grep` (or `ripgrep`) for... | Use `mgrep` for... |
-| --- | --- |
-| **Exact Matches** | **Intent Search** |
-| Symbol tracing, Refactoring, Regex | Code exploration, Feature discovery, Onboarding |
-
-## Web Search
-
-`mgrep` can also search the web alongside your local files. This is useful when
-you need to find documentation, tutorials, or answers to programming questions
-without leaving your terminal.
-
-```bash
-# Search the web and get a summarized answer
-mgrep --web --answer "How do I integrate a JavaScript runtime into Deno?"
-
-# Get the urls of the search
-mgrep --web "best practices for error handling in TypeScript"
-```
-
-Web search queries the `mixedbread/web` store in addition to your local store, merging results based on relevance. Use `--answer` (or `-a`) to get a concise summary instead of raw results.
-
-## Commands at a Glance
+## Command Reference
 
 | Command | Purpose |
 | --- | --- |
@@ -168,7 +142,7 @@ directory for a pattern.
 | `--max-file-count <count>` | Maximum number of files to upload (overrides config) |
 
 All search options can also be configured via environment variables (see
-[Environment Variables](#environment-variables) section below).
+[Configuration](#configuration) section below).
 
 **Examples:**
 ```bash
@@ -176,8 +150,23 @@ mgrep "What code parsers are available?"  # search in the current directory
 mgrep "How are chunks defined?" src/models  # search in the src/models directory
 mgrep -m 10 "What is the maximum number of concurrent workers in the code parser?"  # limit the number of results to 10
 mgrep -a "What code parsers are available?"  # generate an answer to the question based on the results
-mgrep --web --answer "How do I integrate a JavaScript runtime into Deno?"  # search the web and get a summarized answer
 ```
+
+#### Web Search
+
+`mgrep` can also search the web alongside your local files. This is useful when
+you need to find documentation, tutorials, or answers to programming questions
+without leaving your terminal.
+
+```bash
+# Search the web and get a summarized answer
+mgrep --web --answer "How do I integrate a JavaScript runtime into Deno?"
+
+# Get the urls of the search
+mgrep --web "best practices for error handling in TypeScript"
+```
+
+Web search queries the `mixedbread/web` store in addition to your local store, merging results based on relevance. Use `--answer` (or `-a`) to get a concise summary instead of raw results.
 
 ### mgrep watch
 
@@ -200,15 +189,6 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
 mgrep watch --max-file-count 5000  # limit uploads to directories with 5000 files or fewer
 ```
-
-## Mixedbread under the hood
-
-- Every file is pushed into a Mixedbread Store using the same SDK your apps get.
-- Searches request top-k matches with Mixedbread reranking enabled by default
-  for tighter relevance (can be disabled with `--no-rerank` or
-  `MGREP_RERANK=0`).
-- Results include relative paths plus contextual hints (line ranges for text, page numbers for PDFs, etc.) for a skim-friendly experience.
-- Because stores are cloud-backed, agents and teammates can query the same corpus without re-uploading.
 
 ## Configuration
 
@@ -233,25 +213,14 @@ maxFileCount: 5000
 4. Global config file (`~/.config/mgrep/config.yaml`)
 5. Default values
 
-### Configuration Tips
+### Environment Variables
 
-- `--store <name>` lets you isolate workspaces (per repo, per team, per experiment). Stores are created on demand if they do not exist yet.
-- Ignore rules come straight from git, so temp files, build outputs, and vendored deps stay out of your embeddings.
-- `watch` reports progress (`processed / uploaded`) as it scans; leave it running in a terminal tab to keep your store fresh.
-- `search` accepts most `grep`-style switches, and politely ignores anything it cannot support, so existing muscle memory still works.
-
-## Environment Variables
-
-All search options can be configured via environment variables, which is
-especially useful for CI/CD pipelines or when you want to set defaults for all
-searches.
-
-### Authentication & Store
+#### Authentication & Store
 
 - `MXBAI_API_KEY`: Set this to authenticate without browser login (ideal for CI/CD)
 - `MXBAI_STORE`: Override the default store name (default: `mgrep`)
 
-### Search Options
+#### Search Options
 
 - `MGREP_MAX_COUNT`: Maximum number of results to return (default: `10`)
 - `MGREP_CONTENT`: Show content of the results (set to `1` or `true` to enable)
@@ -261,10 +230,10 @@ searches.
 - `MGREP_DRY_RUN`: Enable dry run mode (set to `1` or `true` to enable)
 - `MGREP_RERANK`: Enable reranking of search results (set to `0` or `false` to disable, default: enabled)
 
-### Sync Options
+#### Sync Options
 
-- `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `10485760` / 10MB)
-- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `10000`)
+- `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: 1MB)
+- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `1000`)
 
 **Examples:**
 ```bash
@@ -288,6 +257,22 @@ mgrep "search query"
 ```
 
 Note: Command-line options always override environment variables.
+
+### Configuration Tips
+
+- `--store <name>` lets you isolate workspaces (per repo, per team, per experiment). Stores are created on demand if they do not exist yet.
+- Ignore rules come straight from git, so temp files, build outputs, and vendored deps stay out of your embeddings.
+- `watch` reports progress (`processed / uploaded`) as it scans; leave it running in a terminal tab to keep your store fresh.
+- `search` accepts most `grep`-style switches, and politely ignores anything it cannot support, so existing muscle memory still works.
+
+## How It Works
+
+- Every file is pushed into a Mixedbread Store using the same SDK your apps get.
+- Searches request top-k matches with Mixedbread reranking enabled by default
+  for tighter relevance (can be disabled with `--no-rerank` or
+  `MGREP_RERANK=0`).
+- Results include relative paths plus contextual hints (line ranges for text, page numbers for PDFs, etc.) for a skim-friendly experience.
+- Because stores are cloud-backed, agents and teammates can query the same corpus without re-uploading.
 
 ## Development
 
