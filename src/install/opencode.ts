@@ -160,7 +160,9 @@ async function uninstallPlugin() {
         delete configJson.mcp.mgrep;
       }
       fs.writeFileSync(configPath, stringify(configJson, null, 2));
-      console.log("Successfully removed the mgrep tool from the OpenCode agent");
+      console.log(
+        "Successfully removed the mgrep tool from the OpenCode agent",
+      );
     } else {
       console.log("The mgrep tool is not installed in the OpenCode agent");
     }
