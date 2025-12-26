@@ -34,12 +34,11 @@ export class MaxFileCountExceededError extends Error {
   }
 }
 
-/** Check if an error message indicates a quota/rate limit issue */
+/** Check if an error message indicates a quota issue */
 function isQuotaError(errorMessage: string): boolean {
   return (
     errorMessage.includes("Free tier") ||
     errorMessage.includes("quota") ||
-    errorMessage.includes("rate limit") ||
     errorMessage.includes("Upgrade your plan")
   );
 }
