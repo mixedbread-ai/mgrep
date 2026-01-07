@@ -5,6 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../lib/utils.js";
+import { printInstallWarning } from "../lib/warning.js";
 
 const shell =
   process.env.SHELL ||
@@ -76,6 +77,8 @@ async function installPlugin() {
     } else {
       console.log("The mgrep skill is already installed in the Codex agent");
     }
+
+    printInstallWarning("Codex", "mgrep uninstall-codex");
   } catch (error) {
     console.error(`Error installing plugin: ${error}`);
     process.exit(1);

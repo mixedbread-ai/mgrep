@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../lib/utils.js";
+import { printInstallWarning } from "../lib/warning.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -187,6 +188,8 @@ async function installPlugin() {
   console.log(
     `Installed the mgrep hooks and skill for Factory Droid in ${root}`,
   );
+
+  printInstallWarning("Factory Droid", "mgrep uninstall-droid");
 }
 
 async function uninstallPlugin() {

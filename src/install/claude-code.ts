@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../lib/utils.js";
+import { printInstallWarning } from "../lib/warning.js";
 
 const shell =
   process.env.SHELL ||
@@ -38,6 +39,8 @@ async function installPlugin() {
     );
     process.exit(1);
   }
+
+  printInstallWarning("Claude Code", "mgrep uninstall-claude-code");
 }
 
 async function uninstallPlugin() {

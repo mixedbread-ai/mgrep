@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { ensureAuthenticated } from "../lib/utils.js";
+import { printInstallWarning } from "../lib/warning.js";
 
 const TOOL_PATH = path.join(
   os.homedir(),
@@ -103,6 +104,8 @@ async function installPlugin() {
     };
     fs.writeFileSync(MCP_PATH, JSON.stringify(mcpJson, null, 2));
     console.log("Successfully installed the mgrep tool in the OpenCode agent");
+
+    printInstallWarning("OpenCode", "mgrep uninstall-opencode");
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error installing tool: ${errorMessage}`);

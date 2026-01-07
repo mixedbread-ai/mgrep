@@ -74,6 +74,13 @@ mgrep "where do we set up auth?"
 
 ## Using it with Coding Agents
 
+> [!CAUTION]
+> **Background Sync Enabled**: When installed with a coding agent, mgrep runs a
+> background process that syncs your files to enable semantic search. This
+> process starts automatically when you begin a session and stops when your
+> session ends. You can see your current usage in the [Mixedbread
+> platform](https://www.platform.mixedbread.com/).
+
 `mgrep` supports assisted installation commands for many agents:
 - `mgrep install-claude-code` for Claude Code
 - `mgrep install-opencode` for OpenCode
