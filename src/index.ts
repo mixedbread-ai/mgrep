@@ -9,6 +9,7 @@ import { search } from "./commands/search.js";
 import { switchOrg } from "./commands/switch-org.js";
 import { watch } from "./commands/watch.js";
 import { watchMcp } from "./commands/watch_mcp.js";
+import { list } from "./commands/list.js";
 import {
   installClaudeCode,
   uninstallClaudeCode,
@@ -39,6 +40,7 @@ program
 
 program.addCommand(search, { isDefault: true });
 program.addCommand(watch);
+program.addCommand(list);
 program.addCommand(installClaudeCode);
 program.addCommand(uninstallClaudeCode);
 program.addCommand(installCodex);
