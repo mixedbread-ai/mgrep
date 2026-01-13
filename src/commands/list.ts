@@ -26,14 +26,16 @@ async function getWatchers(): Promise<WatcherInfo[]> {
 
 export async function listAction(): Promise<void> {
   if (process.platform === 'win32') {
-    console.log('mgrep list is not supported on Windows.');
+    console.error('mgrep list is not supported on Windows.');
+    process.exitCode = 1;
     return;
   }
 
   const watchers = await getWatchers();
 
   if (watchers.length === 0) {
-    console.log('No active mgrep watch processes found.');
+    console.error('No active mgrep watch processes found.');
+    process.exitCode = 0;
     return;
   }
 
