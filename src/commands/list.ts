@@ -25,6 +25,11 @@ async function getWatchers(): Promise<WatcherInfo[]> {
 }
 
 export async function listAction(): Promise<void> {
+  if (process.platform === 'win32') {
+    console.log('mgrep list is not supported on Windows.');
+    return;
+  }
+
   const watchers = await getWatchers();
 
   if (watchers.length === 0) {
