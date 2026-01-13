@@ -13,7 +13,7 @@ async function getWatchers(): Promise<WatcherInfo[]> {
 
   for (const proc of processes) {
     const cmd = proc.cmd || '';
-    if (cmd.includes('mgrep') && cmd.includes('watch')) {
+    if (cmd.includes('mgrep watch')) {
       const cwd = await pidCwd(proc.pid).catch(() => null);
       if (cwd) {
         watchers.push({ pid: proc.pid, directory: cwd });
