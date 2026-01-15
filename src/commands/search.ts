@@ -100,11 +100,16 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
 
   const storedPath = (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
   // Handle both absolute and relative paths
-  // If path starts with /, it's absolute - strip pwd prefix
-  // If path doesn't start with /, it's relative (shared mode) - use as-is with ./ prefix
-  const displayPath = storedPath.startsWith("/")
-    ? storedPath.replace(pwd, "")
-    : storedPath;
+  // If path starts with /, it's absolute - strip pwd prefix and leading slash
+  // If path doesn't start with /, it's relative (shared mode) - use as-is
+  let displayPath: string;
+  if (storedPath.startsWith("/")) {
+    // Absolute path: strip pwd prefix and ensure no leading slash
+    displayPath = storedPath.replace(pwd, "").replace(/^\//, "");
+  } else {
+    // Relative path (shared mode): use as-is
+    displayPath = storedPath;
+  }
 
   let line_range = "";
   let content = "";
@@ -317,10 +322,13 @@ export const search: Command = new CommanderCommand("search")
       const store = await createStore();
 
       if (options.sync) {
+        // In shared mode, always sync from project root to ensure consistent relative paths
+        // In normal mode, sync from the specified search path
+        const syncRoot = config.shared ? root : search_path;
         const shouldReturn = await syncFiles(
           store,
           options.store,
-          search_path,
+          syncRoot,
           options.dryRun,
           config,
         );
