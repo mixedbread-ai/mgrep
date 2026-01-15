@@ -189,6 +189,55 @@ export async function ensureAuthenticated(): Promise<void> {
   await loginAction();
 }
 
+/**
+ * Converts an absolute file path to a relative path from the project root.
+ * Used in shared mode to store files with relative paths.
+ *
+ * @param absolutePath - The absolute file path
+ * @param projectRoot - The project root directory
+ * @returns The relative path from the project root
+ */
+export function toRelativePath(
+  absolutePath: string,
+  projectRoot: string,
+): string {
+  const relative = path.relative(projectRoot, absolutePath);
+  // Ensure consistent forward slashes for cross-platform compatibility
+  return relative.split(path.sep).join("/");
+}
+
+/**
+ * Converts a relative path to an absolute path using the project root.
+ *
+ * @param relativePath - The relative file path (may use forward slashes)
+ * @param projectRoot - The project root directory
+ * @returns The absolute path
+ */
+export function toAbsolutePath(
+  relativePath: string,
+  projectRoot: string,
+): string {
+  // Handle forward slashes from stored paths
+  const normalizedRelative = relativePath.split("/").join(path.sep);
+  return path.join(projectRoot, normalizedRelative);
+}
+
+/**
+ * Gets the storage path for a file based on whether shared mode is enabled.
+ *
+ * @param absolutePath - The absolute file path on disk
+ * @param projectRoot - The project root directory
+ * @param shared - Whether shared mode is enabled
+ * @returns The path to use for storage (relative if shared, absolute otherwise)
+ */
+export function getStoragePath(
+  absolutePath: string,
+  projectRoot: string,
+  shared: boolean,
+): string {
+  return shared ? toRelativePath(absolutePath, projectRoot) : absolutePath;
+}
+
 export async function deleteFile(
   store: Store,
   storeId: string,
@@ -197,11 +246,23 @@ export async function deleteFile(
   await store.deleteFile(storeId, filePath);
 }
 
+/**
+ * Uploads a file to the store.
+ *
+ * @param store - The store instance
+ * @param storeId - The ID of the store
+ * @param filePath - The absolute path to the file on disk
+ * @param fileName - The file name for display
+ * @param projectRoot - The project root directory (used for path storage)
+ * @param config - Optional configuration
+ * @returns True if the file was uploaded, false if skipped
+ */
 export async function uploadFile(
   store: Store,
   storeId: string,
   filePath: string,
   fileName: string,
+  projectRoot: string,
   config?: MgrepConfig,
 ): Promise<boolean> {
   if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
@@ -214,11 +275,19 @@ export async function uploadFile(
   }
 
   const hash = await computeBufferHash(buffer);
+
+  // Use relative paths in shared mode, absolute paths otherwise
+  const storagePath = getStoragePath(
+    filePath,
+    projectRoot,
+    config?.shared ?? false,
+  );
+
   const options = {
-    external_id: filePath,
+    external_id: storagePath,
     overwrite: true,
     metadata: {
-      path: filePath,
+      path: storagePath,
       hash,
     },
   };
@@ -271,7 +340,13 @@ export async function initialSync(
   onProgress?: (info: InitialSyncProgress) => void,
   config?: MgrepConfig,
 ): Promise<InitialSyncResult> {
-  const storeHashes = await listStoreFileHashes(store, storeId, repoRoot);
+  const shared = config?.shared ?? false;
+
+  // In shared mode, files are stored with relative paths, so we don't filter by path prefix
+  // In normal mode, we filter by absolute path prefix
+  const pathPrefix = shared ? undefined : repoRoot;
+  const storeHashes = await listStoreFileHashes(store, storeId, pathPrefix);
+
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
@@ -281,11 +356,20 @@ export async function initialSync(
     throw new MaxFileCountExceededError(repoFiles.length, config.maxFileCount);
   }
 
-  const repoFileSet = new Set(repoFiles);
-
-  const filesToDelete = Array.from(storeHashes.keys()).filter(
-    (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
+  // Build a set of storage paths for comparison
+  const repoStoragePaths = new Set(
+    repoFiles.map((filePath) => getStoragePath(filePath, repoRoot, shared)),
   );
+
+  // Find files to delete - files in store but not in repo
+  const filesToDelete = Array.from(storeHashes.keys()).filter((storagePath) => {
+    if (shared) {
+      // In shared mode, storage paths are relative - just check if in set
+      return !repoStoragePaths.has(storagePath);
+    }
+    // In normal mode, check if path is within repoRoot and not in set
+    return isSubpath(repoRoot, storagePath) && !repoStoragePaths.has(storagePath);
+  });
 
   const total = repoFiles.length + filesToDelete.length;
   let processed = 0;
@@ -322,7 +406,9 @@ export async function initialSync(
           }
 
           const buffer = await fs.promises.readFile(filePath);
-          const existingHash = storeHashes.get(filePath);
+          // Look up existing hash using storage path (relative or absolute)
+          const storagePath = getStoragePath(filePath, repoRoot, shared);
+          const existingHash = storeHashes.get(storagePath);
           processed += 1;
           const hashMatches = existingHash
             ? await hashesMatch(existingHash, buffer)
@@ -337,6 +423,7 @@ export async function initialSync(
               storeId,
               filePath,
               path.basename(filePath),
+              repoRoot,
               config,
             );
             if (didUpload) {
