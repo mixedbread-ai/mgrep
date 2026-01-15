@@ -188,9 +188,7 @@ This is particularly useful for questions that span multiple files or concepts, 
 | `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). |
 | `mgrep watch` | Index current repo and keep the Mixedbread store in sync via file watchers. |
 | `mgrep login` & `mgrep logout` | Manage device-based authentication with Mixedbread. |
-| `mgrep whoami` | Show current authenticated user and organization. |
 | `mgrep switch-org` | Switch to a different organization. |
-| `mgrep list-stores` | List all stores in the current organization. |
 | `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code. |
 | `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep to OpenCode. |
 | `mgrep install-codex` | Authenticate and add the Mixedbread mgrep to Codex. |
@@ -320,8 +318,6 @@ mgrep supports Mixedbread organizations for team collaboration:
 
 - **Login with organization**: When you log in, you'll be prompted to select an organization if you belong to multiple
 - **Switch organizations**: Use `mgrep switch-org` to change your active organization
-- **View current context**: Use `mgrep whoami` to see your current user and organization
-- **List stores**: Use `mgrep list-stores` to see all stores in your organization
 
 Stores are scoped to organizations, so different teams can have stores with the same name without conflicts.
 
