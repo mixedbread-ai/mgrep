@@ -31,14 +31,14 @@ export interface MgrepConfig {
   /**
    * Maximum file size in bytes that is allowed to upload.
    * Files larger than this will be skipped during sync.
-   * @default 10485760 (10 MB)
+   * @default 1048576 (1 MB)
    */
   maxFileSize: number;
 
   /**
    * Maximum number of files that can be uploaded in a single sync operation.
    * If the folder contains more files than this limit, an error will be thrown.
-   * @default 10000
+   * @default 1000
    */
   maxFileCount: number;
 }

@@ -243,10 +243,10 @@ mgrep can be configured via config files, environment variables, or CLI flags.
 Create a `.mgreprc.yaml` (or `.mgreprc.yml`) in your project root for local configuration, or `~/.config/mgrep/config.yaml` (or `config.yml`) for global configuration.
 
 ```yaml
-# Maximum file size in bytes to upload (default: 10MB)
+# Maximum file size in bytes to upload (default: 1MB)
 maxFileSize: 5242880
 
-# Maximum number of files to upload (default: 10000)
+# Maximum number of files to upload (default: 1000)
 maxFileCount: 5000
 ```
 
@@ -287,8 +287,8 @@ searches.
 
 ### Sync Options
 
-- `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `10485760` / 10MB)
-- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `10000`)
+- `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `1048576` / 1MB)
+- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `1000`)
 
 **Examples:**
 ```bash
