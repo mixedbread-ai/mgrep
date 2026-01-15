@@ -81,6 +81,23 @@ mgrep "where do we set up auth?"
 > session ends. You can see your current usage in the [Mixedbread
 > platform](https://www.platform.mixedbread.com/).
 
+> [!NOTE]
+> **Default Limits**: mgrep enforces default limits to ensure optimal performance:
+> - **Maximum file size**: 10MB per file
+> - **Maximum file count**: 10,000 files per directory
+>
+> These limits can be customized via CLI flags (`--max-file-size`, `--max-file-count`),
+> environment variables, or config files. See the [Configuration](#configuration) section for details.
+
+If you prefer to manually start the file watcher instead of relying on the agent's
+automatic background sync, you can run:
+
+```bash
+mgrep watch /path/to/your/project
+```
+
+This gives you explicit control over when indexing occurs and which directories are watched.
+
 `mgrep` supports assisted installation commands for many agents:
 - `mgrep install-claude-code` for Claude Code
 - `mgrep install-opencode` for OpenCode
