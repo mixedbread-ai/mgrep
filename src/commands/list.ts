@@ -1,6 +1,6 @@
-import { Command } from 'commander';
-import psList from 'ps-list';
-import pidCwd from 'pid-cwd';
+import { Command } from "commander";
+import pidCwd from "pid-cwd";
+import psList from "ps-list";
 
 interface WatcherInfo {
   pid: number;
@@ -12,8 +12,8 @@ async function getWatchers(): Promise<WatcherInfo[]> {
   const watchers: WatcherInfo[] = [];
 
   for (const proc of processes) {
-    const cmd = proc.cmd || '';
-    if (cmd.includes('mgrep watch')) {
+    const cmd = proc.cmd || "";
+    if (cmd.includes("mgrep watch")) {
       const cwd = await pidCwd(proc.pid).catch(() => null);
       if (cwd) {
         watchers.push({ pid: proc.pid, directory: cwd });
@@ -25,8 +25,8 @@ async function getWatchers(): Promise<WatcherInfo[]> {
 }
 
 export async function listAction(): Promise<void> {
-  if (process.platform === 'win32') {
-    console.error('mgrep list is not supported on Windows.');
+  if (process.platform === "win32") {
+    console.error("mgrep list is not supported on Windows.");
     process.exitCode = 1;
     return;
   }
@@ -34,7 +34,7 @@ export async function listAction(): Promise<void> {
   const watchers = await getWatchers();
 
   if (watchers.length === 0) {
-    console.error('No active mgrep watch processes found.');
+    console.error("No active mgrep watch processes found.");
     process.exitCode = 0;
     return;
   }
@@ -44,8 +44,8 @@ export async function listAction(): Promise<void> {
   }
 }
 
-export const list = new Command('list')
-  .description('List active mgrep watch processes')
+export const list = new Command("list")
+  .description("List active mgrep watch processes")
   .action(async () => {
     await listAction();
   });

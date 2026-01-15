@@ -3,13 +3,13 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { program } from "commander";
+import { list } from "./commands/list.js";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
 import { search } from "./commands/search.js";
 import { switchOrg } from "./commands/switch-org.js";
 import { watch } from "./commands/watch.js";
 import { watchMcp } from "./commands/watch_mcp.js";
-import { list } from "./commands/list.js";
 import {
   installClaudeCode,
   uninstallClaudeCode,
