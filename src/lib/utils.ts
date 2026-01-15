@@ -139,27 +139,37 @@ export function isDevelopment(): boolean {
   return false;
 }
 
+/** Metadata stored for each file in the store */
+export interface StoredFileMetadata {
+  hash?: string;
+  mtime?: number;
+}
+
 /**
- * Lists file hashes from the store, optionally filtered by path prefix.
+ * Lists file metadata from the store, optionally filtered by path prefix.
  *
  * @param store - The store instance
  * @param storeId - The ID of the store
  * @param pathPrefix - Optional path prefix to filter files (only files starting with this path are returned)
- * @returns A map of external IDs to their hashes
+ * @returns A map of external IDs to their metadata (hash and mtime)
  */
-export async function listStoreFileHashes(
+export async function listStoreFileMetadata(
   store: Store,
   storeId: string,
   pathPrefix?: string,
-): Promise<Map<string, string | undefined>> {
-  const byExternalId = new Map<string, string | undefined>();
+): Promise<Map<string, StoredFileMetadata>> {
+  const byExternalId = new Map<string, StoredFileMetadata>();
   for await (const file of store.listFiles(storeId, { pathPrefix })) {
     const externalId = file.external_id ?? undefined;
     if (!externalId) continue;
     const metadata = file.metadata;
     const hash: string | undefined =
       metadata && typeof metadata.hash === "string" ? metadata.hash : undefined;
-    byExternalId.set(externalId, hash);
+    const mtime: number | undefined =
+      metadata && typeof metadata.mtime === "number"
+        ? metadata.mtime
+        : undefined;
+    byExternalId.set(externalId, { hash, mtime });
   }
   return byExternalId;
 }
@@ -208,7 +218,10 @@ export async function uploadFile(
     return false;
   }
 
-  const buffer = await fs.promises.readFile(filePath);
+  const [buffer, stat] = await Promise.all([
+    fs.promises.readFile(filePath),
+    fs.promises.stat(filePath),
+  ]);
   if (buffer.length === 0) {
     return false;
   }
@@ -220,6 +233,7 @@ export async function uploadFile(
     metadata: {
       path: filePath,
       hash,
+      mtime: stat.mtimeMs,
     },
   };
 
@@ -271,7 +285,7 @@ export async function initialSync(
   onProgress?: (info: InitialSyncProgress) => void,
   config?: MgrepConfig,
 ): Promise<InitialSyncResult> {
-  const storeHashes = await listStoreFileHashes(store, storeId, repoRoot);
+  const storeMetadata = await listStoreFileMetadata(store, storeId, repoRoot);
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
@@ -283,7 +297,7 @@ export async function initialSync(
 
   const repoFileSet = new Set(repoFiles);
 
-  const filesToDelete = Array.from(storeHashes.keys()).filter(
+  const filesToDelete = Array.from(storeMetadata.keys()).filter(
     (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
   );
 
@@ -321,11 +335,28 @@ export async function initialSync(
             return;
           }
 
+          const stored = storeMetadata.get(filePath);
+          const stat = await fs.promises.stat(filePath);
+
+          // Bloom filter: if mtime unchanged, file definitely unchanged
+          if (stored?.mtime && stat.mtimeMs <= stored.mtime) {
+            processed += 1;
+            onProgress?.({
+              processed,
+              uploaded,
+              deleted,
+              errors,
+              total,
+              filePath,
+            });
+            return;
+          }
+
+          // mtime changed or no stored mtime - need to check hash
           const buffer = await fs.promises.readFile(filePath);
-          const existingHash = storeHashes.get(filePath);
           processed += 1;
-          const hashMatches = existingHash
-            ? await hashesMatch(existingHash, buffer)
+          const hashMatches = stored?.hash
+            ? await hashesMatch(stored.hash, buffer)
             : false;
           const shouldUpload = !hashMatches;
           if (dryRun && shouldUpload) {

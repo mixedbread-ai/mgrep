@@ -12,6 +12,7 @@ import type {
 export interface FileMetadata {
   path: string;
   hash: string;
+  mtime?: number;
 }
 
 export type ChunkType =
