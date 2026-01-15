@@ -3,12 +3,14 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { program } from "commander";
+import { listStores } from "./commands/list-stores.js";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
 import { search } from "./commands/search.js";
 import { switchOrg } from "./commands/switch-org.js";
 import { watch } from "./commands/watch.js";
 import { watchMcp } from "./commands/watch_mcp.js";
+import { whoami } from "./commands/whoami.js";
 import {
   installClaudeCode,
   uninstallClaudeCode,
@@ -49,7 +51,9 @@ program.addCommand(installOpencode);
 program.addCommand(uninstallOpencode);
 program.addCommand(login);
 program.addCommand(logout);
+program.addCommand(whoami);
 program.addCommand(switchOrg);
+program.addCommand(listStores);
 program.addCommand(watchMcp);
 
 program.parse();

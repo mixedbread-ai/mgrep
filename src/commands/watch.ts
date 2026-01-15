@@ -1,9 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import chalk from "chalk";
 import { Command, InvalidArgumentError } from "commander";
 import { type CliConfigOptions, loadConfig } from "../lib/config.js";
 import { createFileSystem, createStore } from "../lib/context.js";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
+import { getCachedOrganization } from "../lib/organizations.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -68,6 +70,14 @@ export async function startWatch(options: WatchOptions): Promise<void> {
       maxFileCount: options.maxFileCount,
     };
     const config = loadConfig(watchRoot, cliOptions);
+    // Display organization info if available
+    const cachedOrg = await getCachedOrganization();
+    if (cachedOrg) {
+      console.debug(
+        `Organization: ${chalk.cyan(cachedOrg.name)} ${chalk.dim(`(${cachedOrg.slug})`)}`,
+      );
+    }
+    console.debug(`Store: ${chalk.cyan(options.store)}`);
     console.debug("Watching for file changes in", watchRoot);
 
     const { spinner, onProgress } = createIndexingSpinner(watchRoot);
