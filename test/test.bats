@@ -401,8 +401,8 @@ teardown() {
     run mgrep watch --dry-run --max-file-count 3
 
     assert_failure
-    assert_output --partial 'File count (5) exceeds the maximum allowed (3)'
-    assert_output --partial 'No files were uploaded'
+    assert_output --partial 'Files to sync (5) exceeds the maximum allowed (3)'
+    assert_output --partial 'No files were synced'
 }
 
 @test "Config maxFileCount succeeds when not exceeded" {
@@ -433,7 +433,7 @@ teardown() {
     run mgrep watch --dry-run
 
     assert_failure
-    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+    assert_output --partial 'Files to sync (4) exceeds the maximum allowed (2)'
 }
 
 @test "Config maxFileCount env variable" {
@@ -450,7 +450,7 @@ teardown() {
     unset MGREP_MAX_FILE_COUNT
 
     assert_failure
-    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+    assert_output --partial 'Files to sync (4) exceeds the maximum allowed (2)'
 }
 
 @test "Config maxFileCount CLI overrides env variable" {
@@ -467,7 +467,7 @@ teardown() {
     unset MGREP_MAX_FILE_COUNT
 
     assert_failure
-    assert_output --partial 'File count (4) exceeds the maximum allowed (2)'
+    assert_output --partial 'Files to sync (4) exceeds the maximum allowed (2)'
 }
 
 @test "Search allows home directory without sync" {

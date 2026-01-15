@@ -222,7 +222,7 @@ root of the repository. The `.mgrepignore` file follows the same syntax as the
 ```bash
 mgrep watch  # index the current repository and keep the Mixedbread store in sync via file watchers
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
-mgrep watch --max-file-count 5000  # limit uploads to directories with 5000 files or fewer
+mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
 ```
 
 ## Mixedbread under the hood
@@ -246,7 +246,7 @@ Create a `.mgreprc.yaml` (or `.mgreprc.yml`) in your project root for local conf
 # Maximum file size in bytes to upload (default: 1MB)
 maxFileSize: 5242880
 
-# Maximum number of files to upload (default: 1000)
+# Maximum number of files to sync (upload/delete) per operation (default: 1000)
 maxFileCount: 5000
 ```
 
@@ -288,7 +288,7 @@ searches.
 ### Sync Options
 
 - `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `1048576` / 1MB)
-- `MGREP_MAX_FILE_COUNT`: Maximum number of files to upload (default: `1000`)
+- `MGREP_MAX_FILE_COUNT`: Maximum number of files to sync per operation (default: `1000`)
 
 **Examples:**
 ```bash

@@ -36,8 +36,8 @@ export interface MgrepConfig {
   maxFileSize: number;
 
   /**
-   * Maximum number of files that can be uploaded in a single sync operation.
-   * If the folder contains more files than this limit, an error will be thrown.
+   * Maximum number of files that can be synced (uploaded or deleted) in a single operation.
+   * If more files need to be synced than this limit, an error will be thrown.
    * @default 1000
    */
   maxFileCount: number;
