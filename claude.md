@@ -1,4 +1,37 @@
-## 🧭 Best Practices & Clean Code Guidelines
+# CLAUDE.md
+
+> Project context for Claude Code and AI coding agents. For comprehensive agent guidelines, see @AGENTS.md.
+
+## Quick Reference
+
+```bash
+# Essential commands
+pnpm install          # Install dependencies
+pnpm build            # Build project
+pnpm typecheck        # Type check (run before committing)
+pnpm test             # Run tests
+pnpm format           # Format code with Biome
+pnpm lint             # Check for lint errors
+```
+
+## Project Context
+
+**mgrep** is a semantic search CLI that replaces pattern-based grep with natural language understanding. Key areas:
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/commands/` | CLI command implementations |
+| `src/install/` | Agent integration installers |
+| `src/lib/` | Core utilities (auth, git, store, file ops) |
+| `test/` | bats integration tests |
+
+## Critical Patterns
+
+- **ESM imports**: Always use `.js` extension even for `.ts` files
+- **Commander pattern**: All CLI commands use `commander` package
+- **Mixedbread SDK**: Core search functionality via `@mixedbread/sdk`
+
+## Best Practices & Clean Code Guidelines
 
 Maintaining a clean, consistent, and reliable codebase is essential for scalability and collaboration. The following principles should guide all TypeScript contributions.
 
@@ -63,4 +96,24 @@ function getUser(id: string): Promise<User> {
 - Use descriptive commit messages following the `type(scope): description` convention (e.g., `feat(auth): add token refresh logic`).
 - Be open to feedback — Reviews are opportunities for shared learning and improving code quality.
 
+### 8. Agent Change Documentation
 
+When making changes as an AI agent:
+
+- **Document your changes** — Update relevant documentation if behavior changes
+- **Add tests for new code** — All new functionality needs test coverage
+- **Run verification** — Always run `pnpm typecheck && pnpm test` before completing
+- **Refactor when beneficial** — If you notice code that could be cleaner, propose improvements
+
+## Slash Commands
+
+Custom commands available in `.claude/commands/`:
+
+| Command | Purpose |
+|---------|---------|
+| `/verify` | Run full verification suite (typecheck, lint, test) |
+| `/add-command` | Create a new CLI command |
+| `/add-test` | Add a new test case |
+| `/fix-bug` | Systematic bug fixing workflow |
+| `/refactor` | Safe refactoring process |
+| `/add-integration` | Add new agent integration |
