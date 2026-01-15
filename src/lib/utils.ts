@@ -24,11 +24,11 @@ export class QuotaExceededError extends Error {
   }
 }
 
-/** Error thrown when the file count exceeds the configured limit */
+/** Error thrown when the file count to sync exceeds the configured limit */
 export class MaxFileCountExceededError extends Error {
-  constructor(fileCount: number, maxFileCount: number) {
+  constructor(filesToSync: number, maxFileCount: number) {
     super(
-      `File count (${fileCount}) exceeds the maximum allowed (${maxFileCount}). No files were uploaded.`,
+      `Files to sync (${filesToSync}) exceeds the maximum allowed (${maxFileCount}). No files were synced.`,
     );
     this.name = "MaxFileCountExceededError";
   }
@@ -290,15 +290,39 @@ export async function initialSync(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
   );
 
-  if (config && repoFiles.length > config.maxFileCount) {
-    throw new MaxFileCountExceededError(repoFiles.length, config.maxFileCount);
-  }
-
   const repoFileSet = new Set(repoFiles);
 
   const filesToDelete = Array.from(storeMetadata.keys()).filter(
     (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
   );
+
+  // Check files that potentially need uploading (new or modified)
+  const filesToPotentiallyUpload = repoFiles.filter((filePath) => {
+    if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
+      return false;
+    }
+    const stored = storeMetadata.get(filePath);
+    // If not in store, it needs uploading
+    if (!stored) {
+      return true;
+    }
+    // If no mtime stored, we need to check (conservative)
+    if (!stored.mtime) {
+      return true;
+    }
+    // Check mtime to see if file might have changed
+    try {
+      const stat = fs.statSync(filePath);
+      return stat.mtimeMs > stored.mtime;
+    } catch {
+      return true;
+    }
+  });
+
+  const filesToSync = filesToPotentiallyUpload.length + filesToDelete.length;
+  if (config && filesToSync > config.maxFileCount) {
+    throw new MaxFileCountExceededError(filesToSync, config.maxFileCount);
+  }
 
   const total = repoFiles.length + filesToDelete.length;
   let processed = 0;
