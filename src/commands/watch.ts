@@ -5,7 +5,6 @@ import { Command, InvalidArgumentError } from "commander";
 import { type CliConfigOptions, loadConfig } from "../lib/config.js";
 import { createFileSystem, createStore } from "../lib/context.js";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
-import { getCachedOrganization } from "../lib/organizations.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -73,13 +72,6 @@ export async function startWatch(options: WatchOptions): Promise<void> {
       shared: options.shared,
     };
     const config = loadConfig(watchRoot, cliOptions);
-    // Display organization info if available
-    const cachedOrg = await getCachedOrganization();
-    if (cachedOrg) {
-      console.debug(
-        `Organization: ${chalk.cyan(cachedOrg.name)} ${chalk.dim(`(${cachedOrg.slug})`)}`,
-      );
-    }
     console.debug(`Store: ${chalk.cyan(options.store)}`);
     if (config.shared) {
       console.debug(chalk.yellow("Shared mode enabled (using relative paths)"));
