@@ -14,6 +14,7 @@ const DEFAULT_MAX_FILE_COUNT = 1000;
 const ConfigSchema = z.object({
   maxFileSize: z.number().positive().optional(),
   maxFileCount: z.number().positive().optional(),
+  shared: z.boolean().optional(),
 });
 
 /**
@@ -22,6 +23,7 @@ const ConfigSchema = z.object({
 export interface CliConfigOptions {
   maxFileSize?: number;
   maxFileCount?: number;
+  shared?: boolean;
 }
 
 /**
@@ -41,11 +43,20 @@ export interface MgrepConfig {
    * @default 1000
    */
   maxFileCount: number;
+
+  /**
+   * Enable shared mode for multi-user collaboration.
+   * When enabled, files are stored with relative paths from the project root,
+   * allowing multiple users with different local paths to share the same store.
+   * @default false
+   */
+  shared: boolean;
 }
 
 const DEFAULT_CONFIG: MgrepConfig = {
   maxFileSize: DEFAULT_MAX_FILE_SIZE,
   maxFileCount: DEFAULT_MAX_FILE_COUNT,
+  shared: false,
 };
 
 const configCache = new Map<string, MgrepConfig>();
@@ -101,6 +112,21 @@ function getLocalConfigPaths(dir: string): string[] {
 }
 
 /**
+ * Parses a boolean from an environment variable string
+ */
+function parseBooleanEnv(value: string | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  const lower = value.toLowerCase();
+  if (lower === "1" || lower === "true" || lower === "yes" || lower === "y") {
+    return true;
+  }
+  if (lower === "0" || lower === "false" || lower === "no" || lower === "n") {
+    return false;
+  }
+  return undefined;
+}
+
+/**
  * Loads configuration from environment variables
  *
  * @returns The config values from environment variables
@@ -122,6 +148,11 @@ function loadEnvConfig(): Partial<MgrepConfig> {
     if (!Number.isNaN(parsed) && parsed > 0) {
       config.maxFileCount = parsed;
     }
+  }
+
+  const sharedEnv = parseBooleanEnv(process.env[`${ENV_PREFIX}SHARED`]);
+  if (sharedEnv !== undefined) {
+    config.shared = sharedEnv;
   }
 
   return config;
@@ -175,6 +206,9 @@ function filterUndefinedCliOptions(
   }
   if (options.maxFileCount !== undefined) {
     result.maxFileCount = options.maxFileCount;
+  }
+  if (options.shared !== undefined) {
+    result.shared = options.shared;
   }
   return result;
 }

@@ -24,6 +24,7 @@ import {
   isAtOrAboveHomeDirectory,
   MaxFileCountExceededError,
   QuotaExceededError,
+  toRelativePath,
 } from "../lib/utils.js";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
@@ -97,8 +98,14 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
     return `${url} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
   }
 
-  const path =
-    (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
+  const storedPath = (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
+  // Handle both absolute and relative paths
+  // If path starts with /, it's absolute - strip pwd prefix
+  // If path doesn't start with /, it's relative (shared mode) - use as-is with ./ prefix
+  const displayPath = storedPath.startsWith("/")
+    ? storedPath.replace(pwd, "")
+    : storedPath;
+
   let line_range = "";
   let content = "";
   switch (chunk.type) {
@@ -124,7 +131,7 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
       break;
   }
 
-  return `.${path}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
+  return `./${displayPath}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
 }
 
 function parseBooleanEnv(
@@ -256,6 +263,10 @@ export const search: Command = new CommanderCommand("search")
     "Enable agentic search to automatically refine queries and perform multiple searches",
     parseBooleanEnv(process.env.MGREP_AGENTIC, false),
   )
+  .option(
+    "-S, --shared",
+    "Enable shared mode for multi-user collaboration (uses relative paths)",
+  )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -273,6 +284,7 @@ export const search: Command = new CommanderCommand("search")
       maxFileCount?: number;
       web: boolean;
       agentic: boolean;
+      shared?: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -282,6 +294,7 @@ export const search: Command = new CommanderCommand("search")
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
       maxFileCount: options.maxFileCount,
+      shared: options.shared,
     };
     const config = loadConfig(root, cliOptions);
 
@@ -320,12 +333,18 @@ export const search: Command = new CommanderCommand("search")
         ? [options.store, "mixedbread/web"]
         : [options.store];
 
+      // In shared mode, use relative path for filtering
+      // In normal mode, use absolute path
+      const filterPath = config.shared
+        ? toRelativePath(search_path, root)
+        : search_path;
+
       const filters = {
         all: [
           {
             key: "path",
             operator: "starts_with" as const,
-            value: search_path,
+            value: filterPath,
           },
         ],
       };

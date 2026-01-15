@@ -12,6 +12,7 @@ import {
 } from "../lib/sync-helpers.js";
 import {
   deleteFile,
+  getStoragePath,
   initialSync,
   isAtOrAboveHomeDirectory,
   MaxFileCountExceededError,
@@ -24,6 +25,7 @@ export interface WatchOptions {
   dryRun: boolean;
   maxFileSize?: number;
   maxFileCount?: number;
+  shared?: boolean;
 }
 
 export async function startWatch(options: WatchOptions): Promise<void> {
@@ -68,6 +70,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
       maxFileCount: options.maxFileCount,
+      shared: options.shared,
     };
     const config = loadConfig(watchRoot, cliOptions);
     // Display organization info if available
@@ -78,6 +81,9 @@ export async function startWatch(options: WatchOptions): Promise<void> {
       );
     }
     console.debug(`Store: ${chalk.cyan(options.store)}`);
+    if (config.shared) {
+      console.debug(chalk.yellow("Shared mode enabled (using relative paths)"));
+    }
     console.debug("Watching for file changes in", watchRoot);
 
     const { spinner, onProgress } = createIndexingSpinner(watchRoot);
@@ -166,7 +172,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           return;
         }
 
-        uploadFile(store, options.store, filePath, filename, config)
+        uploadFile(store, options.store, filePath, filename, watchRoot, config)
           .then((didUpload) => {
             if (didUpload) {
               console.log(`${eventType}: ${filePath}`);
@@ -177,7 +183,9 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           });
       } catch {
         if (filePath.startsWith(watchRoot) && !fs.existsSync(filePath)) {
-          deleteFile(store, options.store, filePath)
+          // Use storage path (relative in shared mode) for deletion
+          const storagePath = getStoragePath(filePath, watchRoot, config.shared);
+          deleteFile(store, options.store, storagePath)
             .then(() => {
               console.log(`delete: ${filePath}`);
             })
@@ -224,6 +232,10 @@ export const watch = new Command("watch")
       }
       return parsed;
     },
+  )
+  .option(
+    "-S, --shared",
+    "Enable shared mode for multi-user collaboration (stores files with relative paths)",
   )
   .description("Watch for file changes")
   .action(async (_args, cmd) => {

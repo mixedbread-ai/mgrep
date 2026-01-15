@@ -188,6 +188,9 @@ This is particularly useful for questions that span multiple files or concepts, 
 | `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). |
 | `mgrep watch` | Index current repo and keep the Mixedbread store in sync via file watchers. |
 | `mgrep login` & `mgrep logout` | Manage device-based authentication with Mixedbread. |
+| `mgrep whoami` | Show current authenticated user and organization. |
+| `mgrep switch-org` | Switch to a different organization. |
+| `mgrep list-stores` | List all stores in the current organization. |
 | `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code. |
 | `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep to OpenCode. |
 | `mgrep install-codex` | Authenticate and add the Mixedbread mgrep to Codex. |
@@ -207,6 +210,7 @@ directory for a pattern.
 | `--agentic` | Enable agentic search to automatically refine queries and perform multiple searches |
 | `-s`, `--sync` | Sync the local files to the store before searching |
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
+| `-S`, `--shared` | Enable shared mode for multi-user collaboration |
 | `--no-rerank` | Disable reranking of search results |
 | `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
 | `--max-file-count <count>` | Maximum number of files to upload (overrides config) |
@@ -235,12 +239,14 @@ root of the repository. The `.mgrepignore` file follows the same syntax as the
 | Option | Description |
 | --- | --- |
 | `-d`, `--dry-run` | Dry run the watch process (no actual file syncing) |
+| `-S`, `--shared` | Enable shared mode for multi-user collaboration |
 | `--max-file-size <bytes>` | Maximum file size in bytes to upload (overrides config) |
 | `--max-file-count <count>` | Maximum number of files to upload (overrides config) |
 
 **Examples:**
 ```bash
 mgrep watch  # index the current repository and keep the Mixedbread store in sync via file watchers
+mgrep watch --shared  # index with shared mode for multi-user collaboration
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
 mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
 ```
@@ -253,6 +259,71 @@ mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
   `MGREP_RERANK=0`).
 - Results include relative paths plus contextual hints (line ranges for text, page numbers for PDFs, etc.) for a skim-friendly experience.
 - Because stores are cloud-backed, agents and teammates can query the same corpus without re-uploading.
+
+## Multi-User / Shared Mode
+
+When multiple users in an organization want to share the same store for a project, use **shared mode**. This stores files with relative paths instead of absolute paths, allowing teammates with different local directory structures to collaborate seamlessly.
+
+### Enabling Shared Mode
+
+You can enable shared mode in three ways:
+
+1. **CLI flag**: Add `-S` or `--shared` to your commands
+   ```bash
+   mgrep watch --shared
+   mgrep --shared "where is auth configured?"
+   ```
+
+2. **Environment variable**: Set `MGREP_SHARED=true`
+   ```bash
+   export MGREP_SHARED=true
+   mgrep watch
+   ```
+
+3. **Config file**: Add `shared: true` to your `.mgreprc.yaml`
+   ```yaml
+   shared: true
+   maxFileSize: 10485760
+   ```
+
+### How It Works
+
+Without shared mode, files are stored with absolute paths (e.g., `/Users/alice/projects/myapp/src/auth.ts`). This works fine for single users but causes issues when Bob clones the same repo to `/home/bob/code/myapp/`.
+
+With shared mode enabled:
+- Files are stored with **relative paths** from the project root (e.g., `src/auth.ts`)
+- Search filters use relative paths automatically
+- Any team member can sync and search the store regardless of their local path
+
+### Multi-User Workflow
+
+1. **First user indexes the project:**
+   ```bash
+   cd /Users/alice/projects/myapp
+   mgrep watch --shared --store myapp-team
+   ```
+
+2. **Other team members join:**
+   ```bash
+   cd /home/bob/code/myapp
+   mgrep --shared --store myapp-team "how does authentication work?"
+   ```
+
+3. **All users search the same store:**
+   ```bash
+   mgrep --shared --store myapp-team "database connection pooling"
+   ```
+
+### Organization Support
+
+mgrep supports Mixedbread organizations for team collaboration:
+
+- **Login with organization**: When you log in, you'll be prompted to select an organization if you belong to multiple
+- **Switch organizations**: Use `mgrep switch-org` to change your active organization
+- **View current context**: Use `mgrep whoami` to see your current user and organization
+- **List stores**: Use `mgrep list-stores` to see all stores in your organization
+
+Stores are scoped to organizations, so different teams can have stores with the same name without conflicts.
 
 ## Configuration
 
@@ -268,11 +339,14 @@ maxFileSize: 5242880
 
 # Maximum number of files to sync (upload/delete) per operation (default: 1000)
 maxFileCount: 5000
+
+# Enable shared mode for multi-user collaboration (default: false)
+shared: true
 ```
 
 **Configuration precedence** (highest to lowest):
-1. CLI flags (`--max-file-size`, `--max-file-count`)
-2. Environment variables (`MGREP_MAX_FILE_SIZE`, `MGREP_MAX_FILE_COUNT`)
+1. CLI flags (`--max-file-size`, `--max-file-count`, `--shared`)
+2. Environment variables (`MGREP_MAX_FILE_SIZE`, `MGREP_MAX_FILE_COUNT`, `MGREP_SHARED`)
 3. Local config file (`.mgreprc.yaml` in project directory)
 4. Global config file (`~/.config/mgrep/config.yaml`)
 5. Default values
@@ -310,6 +384,7 @@ searches.
 
 - `MGREP_MAX_FILE_SIZE`: Maximum file size in bytes to upload (default: `1048576` / 1MB)
 - `MGREP_MAX_FILE_COUNT`: Maximum number of files to sync per operation (default: `1000`)
+- `MGREP_SHARED`: Enable shared mode for multi-user collaboration (set to `1` or `true` to enable)
 
 **Examples:**
 ```bash
