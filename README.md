@@ -83,8 +83,8 @@ mgrep "where do we set up auth?"
 
 > [!NOTE]
 > **Default Limits**: mgrep enforces default limits to ensure optimal performance:
-> - **Maximum file size**: 10MB per file
-> - **Maximum file count**: 10,000 files per directory
+> - **Maximum file size**: 1MB per file
+> - **Maximum file count**: 1,000 files per directory
 >
 > These limits can be customized via CLI flags (`--max-file-size`, `--max-file-count`),
 > environment variables, or config files. See the [Configuration](#configuration) section for details.
