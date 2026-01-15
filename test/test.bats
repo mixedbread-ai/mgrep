@@ -505,3 +505,75 @@ teardown() {
     assert_output --partial 'file-in-foo.txt'
     refute_output --partial 'file-in-foobar.txt'
 }
+
+@test "Shared mode flag is recognized by watch" {
+    run mgrep watch --shared --dry-run
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode flag is recognized by search" {
+    run mgrep search --shared test
+
+    assert_success
+    assert_output --partial 'test.txt'
+}
+
+@test "Shared mode via config file" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'shared: true' > "$BATS_TMPDIR/test-store/.mgreprc.yaml"
+
+    cd "$BATS_TMPDIR/test-store"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode via environment variable" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    cd "$BATS_TMPDIR/test-store"
+    export MGREP_SHARED=true
+    run mgrep watch --dry-run
+    unset MGREP_SHARED
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode stores files with relative paths" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/shared-test"
+    echo "Shared file content" > "$BATS_TMPDIR/shared-test/shared.txt"
+
+    cd "$BATS_TMPDIR/shared-test"
+    run mgrep search --shared --sync shared
+
+    assert_success
+    # In shared mode, paths should be relative (not contain BATS_TMPDIR)
+    refute_output --partial "$BATS_TMPDIR"
+    assert_output --partial 'shared.txt'
+}
+
+@test "Shared mode search with subdirectory" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/shared-subdir-test/sub"
+    echo "Root file" > "$BATS_TMPDIR/shared-subdir-test/root.txt"
+    echo "Sub file" > "$BATS_TMPDIR/shared-subdir-test/sub/sub.txt"
+
+    cd "$BATS_TMPDIR/shared-subdir-test"
+    run mgrep search --shared --sync file
+
+    assert_success
+    assert_output --partial 'root.txt'
+    assert_output --partial 'sub.txt'
+
+    # Search only in subdirectory
+    run mgrep search --shared file sub
+
+    assert_success
+    assert_output --partial 'sub.txt'
+    refute_output --partial 'root.txt'
+}

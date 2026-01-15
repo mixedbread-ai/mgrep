@@ -216,22 +216,6 @@ export function toRelativePath(
 }
 
 /**
- * Converts a relative path to an absolute path using the project root.
- *
- * @param relativePath - The relative file path (may use forward slashes)
- * @param projectRoot - The project root directory
- * @returns The absolute path
- */
-export function toAbsolutePath(
-  relativePath: string,
-  projectRoot: string,
-): string {
-  // Handle forward slashes from stored paths
-  const normalizedRelative = relativePath.split("/").join(path.sep);
-  return path.join(projectRoot, normalizedRelative);
-}
-
-/**
  * Gets the storage path for a file based on whether shared mode is enabled.
  *
  * @param absolutePath - The absolute file path on disk
