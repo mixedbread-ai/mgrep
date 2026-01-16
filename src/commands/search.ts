@@ -1,4 +1,4 @@
-import { join, normalize } from "node:path";
+import { isAbsolute, join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand, InvalidArgumentError } from "commander";
 import {
@@ -100,12 +100,12 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
 
   const storedPath = (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
   // Handle both absolute and relative paths
-  // If path starts with /, it's absolute - strip pwd prefix and leading slash
-  // If path doesn't start with /, it's relative (shared mode) - use as-is
+  // If path is absolute (Unix: /path, Windows: C:\path) - strip pwd prefix
+  // If path is relative (shared mode) - use as-is
   let displayPath: string;
-  if (storedPath.startsWith("/")) {
+  if (isAbsolute(storedPath)) {
     // Absolute path: strip pwd prefix and ensure no leading slash
-    displayPath = storedPath.replace(pwd, "").replace(/^\//, "");
+    displayPath = storedPath.replace(pwd, "").replace(/^[\\/]/, "");
   } else {
     // Relative path (shared mode): use as-is
     displayPath = storedPath;
@@ -303,11 +303,15 @@ export const search: Command = new CommanderCommand("search")
     };
     const config = loadConfig(root, cliOptions);
 
-    const search_path = exec_path?.startsWith("/")
-      ? exec_path
-      : normalize(join(root, exec_path ?? ""));
+    const search_path =
+      exec_path && isAbsolute(exec_path)
+        ? exec_path
+        : normalize(join(root, exec_path ?? ""));
 
-    if (options.sync && isAtOrAboveHomeDirectory(search_path)) {
+    // In shared mode, sync from project root; in normal mode, sync from search path
+    const syncRoot = config.shared ? root : search_path;
+
+    if (options.sync && isAtOrAboveHomeDirectory(syncRoot)) {
       console.error(
         "Error: Cannot sync home directory or any parent directory.",
       );
@@ -322,9 +326,6 @@ export const search: Command = new CommanderCommand("search")
       const store = await createStore();
 
       if (options.sync) {
-        // In shared mode, always sync from project root to ensure consistent relative paths
-        // In normal mode, sync from the specified search path
-        const syncRoot = config.shared ? root : search_path;
         const shouldReturn = await syncFiles(
           store,
           options.store,
