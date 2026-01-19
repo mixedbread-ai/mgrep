@@ -40,8 +40,11 @@ if __name__ == "__main__":
         sys.exit(1)
     pid = int(open(pid_file).read().strip())
     debug_log(f"Killing mgrep watch process: {pid}")
-    os.kill(pid, signal.SIGKILL)
-    debug_log(f"Killed mgrep watch process: {pid}")
+    try:
+        os.kill(pid, signal.SIGKILL)
+        debug_log(f"Killed mgrep watch process: {pid}")
+    except ProcessLookupError:
+        debug_log(f"Process {pid} already exited")
     os.remove(pid_file)
     debug_log(f"Removed PID file: {pid_file}")
     sys.exit(0)
