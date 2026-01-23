@@ -58,6 +58,16 @@ export interface StoreInfo {
 }
 
 /**
+ * Options for configuring search behavior.
+ */
+export interface SearchOptions {
+  /** Whether to rerank results for improved relevance */
+  rerank?: boolean;
+  /** Enable agentic search to automatically refine queries and perform multiple searches */
+  agentic?: boolean;
+}
+
+/**
  * Interface for store operations
  */
 export interface ListFilesOptions {
@@ -98,7 +108,7 @@ export interface Store {
     storeIds: string[],
     query: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<SearchResponse>;
 
@@ -119,7 +129,7 @@ export interface Store {
     storeIds: string[],
     question: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<AskResponse>;
 
@@ -209,7 +219,7 @@ export class MixedbreadStore implements Store {
     storeIds: string[],
     query: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<SearchResponse> {
     const response = await this.client.stores.search({
@@ -240,7 +250,7 @@ export class MixedbreadStore implements Store {
     storeIds: string[],
     question: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<AskResponse> {
     const response = await this.client.stores.questionAnswering({
@@ -421,7 +431,7 @@ export class TestStore implements Store {
     _storeIds: string[],
     query: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<SearchResponse> {
     const db = await this.load();
@@ -486,7 +496,7 @@ export class TestStore implements Store {
     storeIds: string[],
     question: string,
     top_k?: number,
-    search_options?: { rerank?: boolean },
+    search_options?: SearchOptions,
     filters?: SearchFilter,
   ): Promise<AskResponse> {
     const searchRes = await this.search(
