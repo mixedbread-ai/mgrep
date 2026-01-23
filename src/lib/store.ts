@@ -456,7 +456,9 @@ export class TestStore implements Store {
       const lines = file.content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].toLowerCase().includes(query.toLowerCase())) {
-          const rerankSuffix = search_options?.rerank ? "" : " without reranking";
+          const rerankSuffix = search_options?.rerank
+            ? ""
+            : " without reranking";
           const agenticSuffix = search_options?.agentic ? " with agentic" : "";
           results.push({
             type: "text",
