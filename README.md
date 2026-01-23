@@ -162,6 +162,25 @@ mgrep --web "best practices for error handling in TypeScript"
 
 Web search queries the `mixedbread/web` store in addition to your local store, merging results based on relevance. Use `--answer` (or `-a`) to get a concise summary instead of raw results.
 
+## mgrep as Subagent
+
+For complex questions that require information from multiple sources, `mgrep` can act as a subagent that automatically refines queries and performs multiple searches to find the best answer.
+
+```bash
+# Enable agentic search for complex multi-part questions
+mgrep --agentic "What are the yearly numbers for 2020, 2021, 2022, 2023, 2024?"
+
+# Combine with --answer for a synthesized response from multiple sources
+mgrep --agentic -a "How does authentication work and where is it configured?"
+```
+
+When `--agentic` is enabled, mgrep will:
+- Automatically break down complex queries into sub-queries
+- Perform multiple searches as needed to gather comprehensive results
+- Combine findings from different parts of your codebase
+
+This is particularly useful for questions that span multiple files or concepts, where a single search might miss important context.
+
 ## Commands at a Glance
 
 | Command | Purpose |
@@ -185,6 +204,7 @@ directory for a pattern.
 | `-c`, `--content` | Show content of the results |
 | `-a`, `--answer` | Generate an answer to the question based on the results |
 | `-w`, `--web` | Include web search results alongside local files |
+| `--agentic` | Enable agentic search to automatically refine queries and perform multiple searches |
 | `-s`, `--sync` | Sync the local files to the store before searching |
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
 | `--no-rerank` | Disable reranking of search results |
@@ -281,6 +301,7 @@ searches.
 - `MGREP_CONTENT`: Show content of the results (set to `1` or `true` to enable)
 - `MGREP_ANSWER`: Generate an answer based on the results (set to `1` or `true` to enable)
 - `MGREP_WEB`: Include web search results (set to `1` or `true` to enable)
+- `MGREP_AGENTIC`: Enable agentic search for complex multi-source queries (set to `1` or `true` to enable)
 - `MGREP_SYNC`: Sync files before searching (set to `1` or `true` to enable)
 - `MGREP_DRY_RUN`: Enable dry run mode (set to `1` or `true` to enable)
 - `MGREP_RERANK`: Enable reranking of search results (set to `0` or `false` to disable, default: enabled)

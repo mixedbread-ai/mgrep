@@ -251,6 +251,11 @@ export const search: Command = new CommanderCommand("search")
     "Include web search results from mixedbread/web store",
     parseBooleanEnv(process.env.MGREP_WEB, false),
   )
+  .option(
+    "--agentic",
+    "Enable agentic search to automatically refine queries and perform multiple searches",
+    parseBooleanEnv(process.env.MGREP_AGENTIC, false),
+  )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -267,6 +272,7 @@ export const search: Command = new CommanderCommand("search")
       maxFileSize?: number;
       maxFileCount?: number;
       web: boolean;
+      agentic: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -324,13 +330,18 @@ export const search: Command = new CommanderCommand("search")
         ],
       };
 
+      const searchOptions = {
+        rerank: options.rerank,
+        ...(options.agentic && { agentic: true }),
+      };
+
       let response: string;
       if (!options.answer) {
         const results = await store.search(
           storeIds,
           pattern,
           parseInt(options.maxCount, 10),
-          { rerank: options.rerank },
+          searchOptions,
           filters,
         );
         response = formatSearchResponse(results, options.content);
@@ -339,7 +350,7 @@ export const search: Command = new CommanderCommand("search")
           storeIds,
           pattern,
           parseInt(options.maxCount, 10),
-          { rerank: options.rerank },
+          searchOptions,
           filters,
         );
         response = formatAskResponse(results, options.content);
