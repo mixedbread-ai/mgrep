@@ -252,7 +252,7 @@ export const search: Command = new CommanderCommand("search")
     parseBooleanEnv(process.env.MGREP_WEB, false),
   )
   .option(
-    "-ag, --agentic",
+    "--agentic",
     "Enable agentic search to automatically refine queries and perform multiple searches",
     parseBooleanEnv(process.env.MGREP_AGENTIC, false),
   )

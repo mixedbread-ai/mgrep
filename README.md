@@ -168,10 +168,10 @@ For complex questions that require information from multiple sources, `mgrep` ca
 
 ```bash
 # Enable agentic search for complex multi-part questions
-mgrep -ag "What are the yearly numbers for 2020, 2021, 2022, 2023, 2024?"
+mgrep --agentic "What are the yearly numbers for 2020, 2021, 2022, 2023, 2024?"
 
 # Combine with --answer for a synthesized response from multiple sources
-mgrep -ag -a "How does authentication work and where is it configured?"
+mgrep --agentic -a "How does authentication work and where is it configured?"
 ```
 
 When `--agentic` is enabled, mgrep will:
@@ -204,7 +204,7 @@ directory for a pattern.
 | `-c`, `--content` | Show content of the results |
 | `-a`, `--answer` | Generate an answer to the question based on the results |
 | `-w`, `--web` | Include web search results alongside local files |
-| `-ag`, `--agentic` | Enable agentic search to automatically refine queries and perform multiple searches |
+| `--agentic` | Enable agentic search to automatically refine queries and perform multiple searches |
 | `-s`, `--sync` | Sync the local files to the store before searching |
 | `-d`, `--dry-run` | Dry run the search process (no actual file syncing) |
 | `--no-rerank` | Disable reranking of search results |
