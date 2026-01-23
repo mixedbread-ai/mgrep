@@ -332,7 +332,7 @@ export const search: Command = new CommanderCommand("search")
 
       const searchOptions = {
         rerank: options.rerank,
-        agentic: options.agentic || undefined,
+        ...(options.agentic && { agentic: true }),
       };
 
       let response: string;

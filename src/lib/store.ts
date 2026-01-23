@@ -456,10 +456,11 @@ export class TestStore implements Store {
       const lines = file.content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].toLowerCase().includes(query.toLowerCase())) {
+          const rerankSuffix = search_options?.rerank ? "" : " without reranking";
+          const agenticSuffix = search_options?.agentic ? " with agentic" : "";
           results.push({
             type: "text",
-            text:
-              lines[i] + (search_options?.rerank ? "" : " without reranking"),
+            text: lines[i] + rerankSuffix + agenticSuffix,
             score: 1.0,
             metadata: file.metadata,
             chunk_index: results.length - 1,
