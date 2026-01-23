@@ -187,6 +187,7 @@ This is particularly useful for questions that span multiple files or concepts, 
 | --- | --- |
 | `mgrep` / `mgrep search <pattern> [path]` | Natural-language search with many `grep`-style flags (`-i`, `-r`, `-m`...). |
 | `mgrep watch` | Index current repo and keep the Mixedbread store in sync via file watchers. |
+| `mgrep list` | List active mgrep watch processes with their working directories. |
 | `mgrep login` & `mgrep logout` | Manage device-based authentication with Mixedbread. |
 | `mgrep install-claude-code` | Authenticate, add the Mixedbread mgrep plugin to Claude Code. |
 | `mgrep install-opencode` | Authenticate and add the Mixedbread mgrep to OpenCode. |
@@ -244,6 +245,19 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
 mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
 ```
+
+### mgrep list
+
+`mgrep list` shows all running `mgrep watch` processes with their working directories.
+
+**Example:**
+```bash
+mgrep list
+# /home/user/project-a
+# /home/user/project-b
+```
+
+Output is one directory per line.
 
 ## Mixedbread under the hood
 
