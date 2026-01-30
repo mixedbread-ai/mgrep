@@ -557,6 +557,93 @@ teardown() {
     assert_output --partial 'shared.txt'
 }
 
+@test "Config set and get maxFileSize" {
+    export HOME="$BATS_TMPDIR/config-home-1"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize 2097152
+    assert_success
+    assert_output --partial 'Set maxFileSize = 2097152'
+
+    run mgrep config get maxFileSize
+    assert_success
+    assert_output --partial 'maxFileSize = 2097152'
+}
+
+@test "Config set and get shared" {
+    export HOME="$BATS_TMPDIR/config-home-2"
+    mkdir -p "$HOME"
+
+    run mgrep config set shared true
+    assert_success
+    assert_output --partial 'Set shared = true'
+
+    run mgrep config get shared
+    assert_success
+    assert_output --partial 'shared = true'
+}
+
+@test "Config list shows all values" {
+    export HOME="$BATS_TMPDIR/config-home-3"
+    mkdir -p "$HOME"
+
+    run mgrep config list
+    assert_success
+    assert_output --partial 'maxFileSize'
+    assert_output --partial 'maxFileCount'
+    assert_output --partial 'shared'
+}
+
+@test "Config reset removes a key" {
+    export HOME="$BATS_TMPDIR/config-home-4"
+    mkdir -p "$HOME"
+
+    run mgrep config set shared true
+    assert_success
+
+    run mgrep config reset shared
+    assert_success
+    assert_output --partial 'Reset shared to default'
+
+    run mgrep config get shared
+    assert_success
+    assert_output --partial 'default'
+}
+
+@test "Config reset all removes config file" {
+    export HOME="$BATS_TMPDIR/config-home-5"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize 999
+    assert_success
+
+    run mgrep config reset
+    assert_success
+    assert_output --partial 'Reset all config to defaults'
+
+    run mgrep config list
+    assert_success
+    assert_output --partial 'default'
+}
+
+@test "Config set rejects invalid key" {
+    export HOME="$BATS_TMPDIR/config-home-6"
+    mkdir -p "$HOME"
+
+    run mgrep config set invalidKey 123
+    assert_failure
+    assert_output --partial 'Unknown config key'
+}
+
+@test "Config set rejects invalid value for maxFileSize" {
+    export HOME="$BATS_TMPDIR/config-home-7"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize notanumber
+    assert_failure
+    assert_output --partial 'must be a positive integer'
+}
+
 @test "Shared mode search with subdirectory" {
     rm "$BATS_TMPDIR/mgrep-test-store.json"
     mkdir -p "$BATS_TMPDIR/shared-subdir-test/sub"

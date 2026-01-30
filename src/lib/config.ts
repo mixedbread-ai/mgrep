@@ -5,7 +5,7 @@ import YAML from "yaml";
 import { z } from "zod";
 
 const LOCAL_CONFIG_FILES = [".mgreprc.yaml", ".mgreprc.yml"] as const;
-const GLOBAL_CONFIG_DIR = ".config/mgrep";
+export const GLOBAL_CONFIG_DIR = ".config/mgrep";
 const GLOBAL_CONFIG_FILES = ["config.yaml", "config.yml"] as const;
 const ENV_PREFIX = "MGREP_";
 const DEFAULT_MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -53,7 +53,7 @@ export interface MgrepConfig {
   shared: boolean;
 }
 
-const DEFAULT_CONFIG: MgrepConfig = {
+export const DEFAULT_CONFIG: MgrepConfig = {
   maxFileSize: DEFAULT_MAX_FILE_SIZE,
   maxFileCount: DEFAULT_MAX_FILE_COUNT,
   shared: false,
@@ -102,7 +102,7 @@ function findConfig(candidates: string[]): Partial<MgrepConfig> | null {
   return null;
 }
 
-function getGlobalConfigPaths(): string[] {
+export function getGlobalConfigPaths(): string[] {
   const configDir = path.join(os.homedir(), GLOBAL_CONFIG_DIR);
   return GLOBAL_CONFIG_FILES.map((file) => path.join(configDir, file));
 }
@@ -258,3 +258,43 @@ export function formatFileSize(bytes: number): string {
 
   return `${size.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
 }
+
+/**
+ * Reads the global config file, returning raw parsed values (without defaults).
+ *
+ * @returns The parsed config values or an empty object if no global config exists
+ */
+export function readGlobalConfig(): Partial<MgrepConfig> {
+  return findConfig(getGlobalConfigPaths()) ?? {};
+}
+
+/**
+ * Returns the path to the global config file, creating the directory if needed.
+ */
+export function getGlobalConfigFilePath(): string {
+  const configDir = path.join(os.homedir(), GLOBAL_CONFIG_DIR);
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+  return path.join(configDir, GLOBAL_CONFIG_FILES[0]);
+}
+
+/**
+ * Writes a partial config to the global config file.
+ * Merges with existing global config values.
+ *
+ * @param updates - The config values to write
+ */
+export function writeGlobalConfig(updates: Partial<MgrepConfig>): void {
+  const existing = readGlobalConfig();
+  const merged = { ...existing, ...updates };
+  const filePath = getGlobalConfigFilePath();
+  fs.writeFileSync(filePath, YAML.stringify(merged), "utf-8");
+  clearConfigCache();
+}
+
+/**
+ * Valid configuration key names
+ */
+export const CONFIG_KEYS = ["maxFileSize", "maxFileCount", "shared"] as const;
+export type ConfigKey = (typeof CONFIG_KEYS)[number];
