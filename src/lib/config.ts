@@ -294,6 +294,17 @@ export function writeGlobalConfig(updates: Partial<MgrepConfig>): void {
 }
 
 /**
+ * Saves a config object directly to the global config file without merging.
+ *
+ * @param config - The complete config values to save
+ */
+export function saveGlobalConfig(config: Partial<MgrepConfig>): void {
+  const filePath = getGlobalConfigFilePath();
+  fs.writeFileSync(filePath, YAML.stringify(config), "utf-8");
+  clearConfigCache();
+}
+
+/**
  * Valid configuration key names
  */
 export const CONFIG_KEYS = ["maxFileSize", "maxFileCount", "shared"] as const;

@@ -57,14 +57,6 @@ export interface StoreInfo {
   };
 }
 
-export interface StoreSummary {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 /**
  * Options for configuring search behavior.
  */
@@ -150,11 +142,6 @@ export interface Store {
    * Refresh the client with a new JWT token (optional, for long-running sessions)
    */
   refreshClient?(): Promise<void>;
-
-  /**
-   * List all stores in the current organization
-   */
-  list(): Promise<StoreSummary[]>;
 }
 
 /**
@@ -294,33 +281,6 @@ export class MixedbreadStore implements Store {
     };
   }
 
-  async list(): Promise<StoreSummary[]> {
-    const stores: StoreSummary[] = [];
-    let after: string | undefined;
-
-    do {
-      const response = await this.client.stores.list({
-        limit: 100,
-        after,
-      });
-
-      for (const store of response.data) {
-        stores.push({
-          id: store.id,
-          name: store.name,
-          description: store.description ?? null,
-          created_at: store.created_at,
-          updated_at: store.updated_at,
-        });
-      }
-
-      after = response.pagination?.has_more
-        ? (response.pagination?.last_cursor ?? undefined)
-        : undefined;
-    } while (after);
-
-    return stores;
-  }
 }
 
 interface TestStoreDB {
@@ -561,16 +521,4 @@ export class TestStore implements Store {
     return db.info;
   }
 
-  async list(): Promise<StoreSummary[]> {
-    const db = await this.load();
-    return [
-      {
-        id: "test-store",
-        name: db.info.name,
-        description: db.info.description,
-        created_at: db.info.created_at,
-        updated_at: db.info.updated_at,
-      },
-    ];
-  }
 }

@@ -7,6 +7,7 @@ import {
   DEFAULT_CONFIG,
   getGlobalConfigFilePath,
   readGlobalConfig,
+  saveGlobalConfig,
   writeGlobalConfig,
 } from "../lib/config.js";
 
@@ -130,11 +131,13 @@ const reset = new CommanderCommand("reset")
         const key = validateKey(rawKey);
         const globalConfig = readGlobalConfig();
         delete globalConfig[key];
-        const filePath = getGlobalConfigFilePath();
         if (Object.keys(globalConfig).length === 0) {
-          fs.unlinkSync(filePath);
+          const filePath = getGlobalConfigFilePath();
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         } else {
-          writeGlobalConfig(globalConfig);
+          saveGlobalConfig(globalConfig);
         }
         console.log(`Reset ${key} to default (${DEFAULT_CONFIG[key]})`);
       } else {
