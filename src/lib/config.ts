@@ -46,8 +46,8 @@ export interface MgrepConfig {
 
   /**
    * Enable shared mode for multi-user collaboration.
-   * When enabled, files are stored with relative paths from the project root,
-   * allowing multiple users with different local paths to share the same store.
+   * When enabled, search uses regex suffix matching to find results across
+   * users who may have different absolute paths for the same project.
    * @default false
    */
   shared: boolean;

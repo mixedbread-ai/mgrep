@@ -543,7 +543,7 @@ teardown() {
     assert_output --partial 'Shared mode enabled'
 }
 
-@test "Shared mode stores files with relative paths" {
+@test "Shared mode stores files with absolute paths" {
     rm "$BATS_TMPDIR/mgrep-test-store.json"
     mkdir -p "$BATS_TMPDIR/shared-test"
     echo "Shared file content" > "$BATS_TMPDIR/shared-test/shared.txt"
@@ -552,8 +552,8 @@ teardown() {
     run mgrep search --shared --sync shared
 
     assert_success
-    # In shared mode, paths should be relative (not contain BATS_TMPDIR)
-    refute_output --partial "$BATS_TMPDIR"
+    # In shared mode, files are still stored with absolute paths
+    # but displayed as relative from pwd
     assert_output --partial 'shared.txt'
 }
 

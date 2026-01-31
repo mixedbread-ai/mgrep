@@ -441,15 +441,17 @@ export class TestStore implements Store {
 
     for (const file of Object.values(db.files)) {
       if (filters?.all) {
-        const pathFilter = filters.all.find(
-          (f) => "key" in f && f.key === "path" && f.operator === "starts_with",
-        );
-        if (
-          pathFilter &&
-          "value" in pathFilter &&
-          file.metadata &&
-          !file.metadata.path.startsWith(pathFilter.value as string)
-        ) {
+        let excluded = false;
+        for (const f of filters.all) {
+          if (!("key" in f) || f.key !== "path" || !("value" in f) || !file.metadata) continue;
+          if (f.operator === "starts_with" && !file.metadata.path.startsWith(f.value as string)) {
+            excluded = true;
+          }
+          if ((f.operator as string) === "regex" && !new RegExp(f.value as string).test(file.metadata.path)) {
+            excluded = true;
+          }
+        }
+        if (excluded) {
           continue;
         }
       }

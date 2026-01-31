@@ -15,6 +15,7 @@ import type {
   SearchResponse,
   Store,
 } from "../lib/store.js";
+import type { SearchFilter } from "@mixedbread/sdk/resources/shared";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -99,15 +100,14 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
   }
 
   const storedPath = (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
-  // Handle both absolute and relative paths
-  // If path is absolute (Unix: /path, Windows: C:\path) - strip pwd prefix
-  // If path is relative (shared mode) - use as-is
   let displayPath: string;
-  if (isAbsolute(storedPath)) {
-    // Absolute path: strip pwd prefix and ensure no leading slash
+  if (isAbsolute(storedPath) && storedPath.startsWith(pwd)) {
+    // Absolute path from current user: strip pwd prefix
     displayPath = storedPath.replace(pwd, "").replace(/^[\\/]/, "");
+  } else if (isAbsolute(storedPath)) {
+    // Absolute path from another user (shared mode): show full path
+    displayPath = storedPath;
   } else {
-    // Relative path (shared mode): use as-is
     displayPath = storedPath;
   }
 
@@ -270,7 +270,7 @@ export const search: Command = new CommanderCommand("search")
   )
   .option(
     "-S, --shared",
-    "Enable shared mode for multi-user collaboration (uses relative paths)",
+    "Enable shared mode for multi-user collaboration (uses regex suffix matching for search)",
   )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
@@ -342,21 +342,37 @@ export const search: Command = new CommanderCommand("search")
         ? [options.store, "mixedbread/web"]
         : [options.store];
 
-      // In shared mode, use relative path for filtering
-      // In normal mode, use absolute path
-      const filterPath = config.shared
-        ? toRelativePath(search_path, root)
-        : search_path;
-
-      const filters = {
-        all: [
-          {
-            key: "path",
-            operator: "starts_with" as const,
-            value: filterPath,
-          },
-        ],
-      };
+      // In shared mode, use regex suffix matching so results from all users are found
+      // In normal mode, use starts_with with the absolute path
+      // "regex" operator is supported by the API but not yet in SDK types
+      let filters: { all: Array<{ key: string; operator: string; value: string }> } | undefined;
+      if (config.shared) {
+        const relativePath = toRelativePath(search_path, root);
+        if (relativePath) {
+          // Searching a subdirectory — match any absolute path ending with this suffix
+          const escaped = relativePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          filters = {
+            all: [
+              {
+                key: "path",
+                operator: "regex",
+                value: `.*/${escaped}($|/.*)`,
+              },
+            ],
+          };
+        }
+        // If relativePath is empty (searching from root), no filter — match all files in store
+      } else {
+        filters = {
+          all: [
+            {
+              key: "path",
+              operator: "starts_with",
+              value: search_path,
+            },
+          ],
+        };
+      }
 
       const searchOptions = {
         rerank: options.rerank,
@@ -370,7 +386,7 @@ export const search: Command = new CommanderCommand("search")
           pattern,
           parseInt(options.maxCount, 10),
           searchOptions,
-          filters,
+          filters as SearchFilter | undefined,
         );
         response = formatSearchResponse(results, options.content);
       } else {
@@ -379,7 +395,7 @@ export const search: Command = new CommanderCommand("search")
           pattern,
           parseInt(options.maxCount, 10),
           searchOptions,
-          filters,
+          filters as SearchFilter | undefined,
         );
         response = formatAskResponse(results, options.content);
       }

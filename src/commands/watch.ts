@@ -11,7 +11,6 @@ import {
 } from "../lib/sync-helpers.js";
 import {
   deleteFile,
-  getStoragePath,
   initialSync,
   isAtOrAboveHomeDirectory,
   MaxFileCountExceededError,
@@ -74,7 +73,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
     const config = loadConfig(watchRoot, cliOptions);
     console.debug(`Store: ${chalk.cyan(options.store)}`);
     if (config.shared) {
-      console.debug(chalk.yellow("Shared mode enabled (using relative paths)"));
+      console.debug(chalk.yellow("Shared mode enabled"));
     }
     console.debug("Watching for file changes in", watchRoot);
 
@@ -164,7 +163,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           return;
         }
 
-        uploadFile(store, options.store, filePath, filename, watchRoot, config)
+        uploadFile(store, options.store, filePath, filename, config)
           .then((didUpload) => {
             if (didUpload) {
               console.log(`${eventType}: ${filePath}`);
@@ -175,9 +174,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           });
       } catch {
         if (filePath.startsWith(watchRoot) && !fs.existsSync(filePath)) {
-          // Use storage path (relative in shared mode) for deletion
-          const storagePath = getStoragePath(filePath, watchRoot, config.shared);
-          deleteFile(store, options.store, storagePath)
+          deleteFile(store, options.store, filePath)
             .then(() => {
               console.log(`delete: ${filePath}`);
             })
@@ -227,7 +224,7 @@ export const watch = new Command("watch")
   )
   .option(
     "-S, --shared",
-    "Enable shared mode for multi-user collaboration (stores files with relative paths)",
+    "Enable shared mode for multi-user collaboration",
   )
   .description("Watch for file changes")
   .action(async (_args, cmd) => {

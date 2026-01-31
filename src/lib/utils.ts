@@ -215,22 +215,6 @@ export function toRelativePath(
   return relative.split(path.sep).join("/");
 }
 
-/**
- * Gets the storage path for a file based on whether shared mode is enabled.
- *
- * @param absolutePath - The absolute file path on disk
- * @param projectRoot - The project root directory
- * @param shared - Whether shared mode is enabled
- * @returns The path to use for storage (relative if shared, absolute otherwise)
- */
-export function getStoragePath(
-  absolutePath: string,
-  projectRoot: string,
-  shared: boolean,
-): string {
-  return shared ? toRelativePath(absolutePath, projectRoot) : absolutePath;
-}
-
 export async function deleteFile(
   store: Store,
   storeId: string,
@@ -246,7 +230,6 @@ export async function deleteFile(
  * @param storeId - The ID of the store
  * @param filePath - The absolute path to the file on disk
  * @param fileName - The file name for display
- * @param projectRoot - The project root directory (used for path storage)
  * @param config - Optional configuration
  * @returns True if the file was uploaded, false if skipped
  */
@@ -255,7 +238,6 @@ export async function uploadFile(
   storeId: string,
   filePath: string,
   fileName: string,
-  projectRoot: string,
   config?: MgrepConfig,
 ): Promise<boolean> {
   if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
@@ -272,18 +254,11 @@ export async function uploadFile(
 
   const hash = await computeBufferHash(buffer);
 
-  // Use relative paths in shared mode, absolute paths otherwise
-  const storagePath = getStoragePath(
-    filePath,
-    projectRoot,
-    config?.shared ?? false,
-  );
-
   const options = {
-    external_id: storagePath,
+    external_id: filePath,
     overwrite: true,
     metadata: {
-      path: storagePath,
+      path: filePath,
       hash,
       mtime: stat.mtimeMs,
     },
@@ -337,37 +312,25 @@ export async function initialSync(
   onProgress?: (info: InitialSyncProgress) => void,
   config?: MgrepConfig,
 ): Promise<InitialSyncResult> {
-  const shared = config?.shared ?? false;
-
-  // In shared mode, files are stored with relative paths, so we don't filter by path prefix
-  // In normal mode, we filter by absolute path prefix
-  const pathPrefix = shared ? undefined : repoRoot;
-  const storeMetadata = await listStoreFileMetadata(store, storeId, pathPrefix);
+  const storeMetadata = await listStoreFileMetadata(store, storeId, repoRoot);
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
   const repoFiles = allFiles.filter(
     (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
   );
 
-  // Build a set of storage paths for comparison
-  const repoStoragePaths = new Set(
-    repoFiles.map((filePath) => getStoragePath(filePath, repoRoot, shared)),
-  );
+  const repoFileSet = new Set(repoFiles);
 
-  // Find files to delete - files in store but not in repo
-  const filesToDelete = Array.from(storeMetadata.keys()).filter((storagePath) => {
-    if (shared) {
-      return !repoStoragePaths.has(storagePath);
-    }
-    return isSubpath(repoRoot, storagePath) && !repoStoragePaths.has(storagePath);
-  });
+  // Find files to delete - files in store within repoRoot but not on disk
+  const filesToDelete = Array.from(storeMetadata.keys()).filter(
+    (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
+  );
 
   // Check files that potentially need uploading (new or modified)
   const filesToPotentiallyUpload = repoFiles.filter((filePath) => {
     if (config && exceedsMaxFileSize(filePath, config.maxFileSize)) {
       return false;
     }
-    const storagePath = getStoragePath(filePath, repoRoot, shared);
-    const stored = storeMetadata.get(storagePath);
+    const stored = storeMetadata.get(filePath);
     if (!stored) {
       return true;
     }
@@ -421,8 +384,7 @@ export async function initialSync(
             return;
           }
 
-          const storagePath = getStoragePath(filePath, repoRoot, shared);
-          const stored = storeMetadata.get(storagePath);
+          const stored = storeMetadata.get(filePath);
           const stat = await fs.promises.stat(filePath);
 
           // Bloom filter: if mtime unchanged, file definitely unchanged
@@ -455,7 +417,6 @@ export async function initialSync(
               storeId,
               filePath,
               path.basename(filePath),
-              repoRoot,
               config,
             );
             if (didUpload) {

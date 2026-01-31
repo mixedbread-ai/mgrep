@@ -260,7 +260,7 @@ mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
 
 ## Multi-User / Shared Mode
 
-When multiple users in an organization want to share the same store for a project, use **shared mode**. This stores files with relative paths instead of absolute paths, allowing teammates with different local directory structures to collaborate seamlessly.
+When multiple users in an organization want to share the same store for a project, use **shared mode**. Each user uploads files with their own absolute paths. Search uses regex suffix matching to find results across all users, regardless of their local directory structure.
 
 ### Enabling Shared Mode
 
@@ -286,11 +286,11 @@ You can enable shared mode in three ways:
 
 ### How It Works
 
-Without shared mode, files are stored with absolute paths (e.g., `/Users/alice/projects/myapp/src/auth.ts`). This works fine for single users but causes issues when Bob clones the same repo to `/home/bob/code/myapp/`.
+Without shared mode, files are stored with absolute paths and search uses `starts_with` to scope results to the current user's directory. This works fine for single users.
 
 With shared mode enabled:
-- Files are stored with **relative paths** from the project root (e.g., `src/auth.ts`)
-- Search filters use relative paths automatically
+- Files are still stored with **absolute paths** (each user keeps their own paths)
+- Search uses **regex suffix matching** to find results from all users in the store
 - Any team member can sync and search the store regardless of their local path
 
 ### Multi-User Workflow
