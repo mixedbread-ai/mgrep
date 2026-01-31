@@ -198,6 +198,23 @@ export async function ensureAuthenticated(): Promise<void> {
   await loginAction();
 }
 
+/**
+ * Converts an absolute file path to a relative path from the project root.
+ * Used in shared mode to store files with relative paths.
+ *
+ * @param absolutePath - The absolute file path
+ * @param projectRoot - The project root directory
+ * @returns The relative path from the project root
+ */
+export function toRelativePath(
+  absolutePath: string,
+  projectRoot: string,
+): string {
+  const relative = path.relative(projectRoot, absolutePath);
+  // Ensure consistent forward slashes for cross-platform compatibility
+  return relative.split(path.sep).join("/");
+}
+
 export async function deleteFile(
   store: Store,
   storeId: string,
@@ -206,6 +223,16 @@ export async function deleteFile(
   await store.deleteFile(storeId, filePath);
 }
 
+/**
+ * Uploads a file to the store.
+ *
+ * @param store - The store instance
+ * @param storeId - The ID of the store
+ * @param filePath - The absolute path to the file on disk
+ * @param fileName - The file name for display
+ * @param config - Optional configuration
+ * @returns True if the file was uploaded, false if skipped
+ */
 export async function uploadFile(
   store: Store,
   storeId: string,
@@ -226,6 +253,7 @@ export async function uploadFile(
   }
 
   const hash = await computeBufferHash(buffer);
+
   const options = {
     external_id: filePath,
     overwrite: true,
@@ -292,6 +320,7 @@ export async function initialSync(
 
   const repoFileSet = new Set(repoFiles);
 
+  // Find files to delete - files in store within repoRoot but not on disk
   const filesToDelete = Array.from(storeMetadata.keys()).filter(
     (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
   );
@@ -302,15 +331,12 @@ export async function initialSync(
       return false;
     }
     const stored = storeMetadata.get(filePath);
-    // If not in store, it needs uploading
     if (!stored) {
       return true;
     }
-    // If no mtime stored, we need to check (conservative)
     if (!stored.mtime) {
       return true;
     }
-    // Check mtime to see if file might have changed
     try {
       const stat = fs.statSync(filePath);
       return stat.mtimeMs > stored.mtime;

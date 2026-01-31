@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import chalk from "chalk";
 import { Command, InvalidArgumentError } from "commander";
 import { type CliConfigOptions, loadConfig } from "../lib/config.js";
 import { createFileSystem, createStore } from "../lib/context.js";
@@ -22,6 +23,7 @@ export interface WatchOptions {
   dryRun: boolean;
   maxFileSize?: number;
   maxFileCount?: number;
+  shared?: boolean;
 }
 
 export async function startWatch(options: WatchOptions): Promise<void> {
@@ -66,8 +68,13 @@ export async function startWatch(options: WatchOptions): Promise<void> {
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
       maxFileCount: options.maxFileCount,
+      shared: options.shared,
     };
     const config = loadConfig(watchRoot, cliOptions);
+    console.debug(`Store: ${chalk.cyan(options.store)}`);
+    if (config.shared) {
+      console.debug(chalk.yellow("Shared mode enabled"));
+    }
     console.debug("Watching for file changes in", watchRoot);
 
     const { spinner, onProgress } = createIndexingSpinner(watchRoot);
@@ -214,6 +221,10 @@ export const watch = new Command("watch")
       }
       return parsed;
     },
+  )
+  .option(
+    "-S, --shared",
+    "Enable shared mode for multi-user collaboration",
   )
   .description("Watch for file changes")
   .action(async (_args, cmd) => {

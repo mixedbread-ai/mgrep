@@ -505,3 +505,162 @@ teardown() {
     assert_output --partial 'file-in-foo.txt'
     refute_output --partial 'file-in-foobar.txt'
 }
+
+@test "Shared mode flag is recognized by watch" {
+    run mgrep watch --shared --dry-run
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode flag is recognized by search" {
+    run mgrep search --shared test
+
+    assert_success
+    assert_output --partial 'test.txt'
+}
+
+@test "Shared mode via config file" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    echo 'shared: true' > "$BATS_TMPDIR/test-store/.mgreprc.yaml"
+
+    cd "$BATS_TMPDIR/test-store"
+    run mgrep watch --dry-run
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode via environment variable" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+
+    cd "$BATS_TMPDIR/test-store"
+    export MGREP_SHARED=true
+    run mgrep watch --dry-run
+    unset MGREP_SHARED
+
+    assert_success
+    assert_output --partial 'Shared mode enabled'
+}
+
+@test "Shared mode stores files with absolute paths" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/shared-test"
+    echo "Shared file content" > "$BATS_TMPDIR/shared-test/shared.txt"
+
+    cd "$BATS_TMPDIR/shared-test"
+    run mgrep search --shared --sync shared
+
+    assert_success
+    # In shared mode, files are still stored with absolute paths
+    # but displayed as relative from pwd
+    assert_output --partial 'shared.txt'
+}
+
+@test "Config set and get maxFileSize" {
+    export HOME="$BATS_TMPDIR/config-home-1"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize 2097152
+    assert_success
+    assert_output --partial 'Set maxFileSize = 2097152'
+
+    run mgrep config get maxFileSize
+    assert_success
+    assert_output --partial 'maxFileSize = 2097152'
+}
+
+@test "Config set and get shared" {
+    export HOME="$BATS_TMPDIR/config-home-2"
+    mkdir -p "$HOME"
+
+    run mgrep config set shared true
+    assert_success
+    assert_output --partial 'Set shared = true'
+
+    run mgrep config get shared
+    assert_success
+    assert_output --partial 'shared = true'
+}
+
+@test "Config list shows all values" {
+    export HOME="$BATS_TMPDIR/config-home-3"
+    mkdir -p "$HOME"
+
+    run mgrep config list
+    assert_success
+    assert_output --partial 'maxFileSize'
+    assert_output --partial 'maxFileCount'
+    assert_output --partial 'shared'
+}
+
+@test "Config reset removes a key" {
+    export HOME="$BATS_TMPDIR/config-home-4"
+    mkdir -p "$HOME"
+
+    run mgrep config set shared true
+    assert_success
+
+    run mgrep config reset shared
+    assert_success
+    assert_output --partial 'Reset shared to default'
+
+    run mgrep config get shared
+    assert_success
+    assert_output --partial 'default'
+}
+
+@test "Config reset all removes config file" {
+    export HOME="$BATS_TMPDIR/config-home-5"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize 999
+    assert_success
+
+    run mgrep config reset
+    assert_success
+    assert_output --partial 'Reset all config to defaults'
+
+    run mgrep config list
+    assert_success
+    assert_output --partial 'default'
+}
+
+@test "Config set rejects invalid key" {
+    export HOME="$BATS_TMPDIR/config-home-6"
+    mkdir -p "$HOME"
+
+    run mgrep config set invalidKey 123
+    assert_failure
+    assert_output --partial 'Unknown config key'
+}
+
+@test "Config set rejects invalid value for maxFileSize" {
+    export HOME="$BATS_TMPDIR/config-home-7"
+    mkdir -p "$HOME"
+
+    run mgrep config set maxFileSize notanumber
+    assert_failure
+    assert_output --partial 'must be a positive integer'
+}
+
+@test "Shared mode search with subdirectory" {
+    rm "$BATS_TMPDIR/mgrep-test-store.json"
+    mkdir -p "$BATS_TMPDIR/shared-subdir-test/sub"
+    echo "Root file" > "$BATS_TMPDIR/shared-subdir-test/root.txt"
+    echo "Sub file" > "$BATS_TMPDIR/shared-subdir-test/sub/sub.txt"
+
+    cd "$BATS_TMPDIR/shared-subdir-test"
+    run mgrep search --shared --sync file
+
+    assert_success
+    assert_output --partial 'root.txt'
+    assert_output --partial 'sub.txt'
+
+    # Search only in subdirectory
+    run mgrep search --shared file sub
+
+    assert_success
+    assert_output --partial 'sub.txt'
+    refute_output --partial 'root.txt'
+}

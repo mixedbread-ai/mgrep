@@ -1,4 +1,4 @@
-import { join, normalize } from "node:path";
+import { isAbsolute, join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand, InvalidArgumentError } from "commander";
 import {
@@ -15,6 +15,7 @@ import type {
   SearchResponse,
   Store,
 } from "../lib/store.js";
+import type { SearchFilter } from "@mixedbread/sdk/resources/shared";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -24,6 +25,7 @@ import {
   isAtOrAboveHomeDirectory,
   MaxFileCountExceededError,
   QuotaExceededError,
+  toRelativePath,
 } from "../lib/utils.js";
 
 function extractSources(response: AskResponse): { [key: number]: ChunkType } {
@@ -97,8 +99,18 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
     return `${url} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
   }
 
-  const path =
-    (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
+  const storedPath = (chunk.metadata as FileMetadata)?.path ?? "Unknown path";
+  let displayPath: string;
+  if (isAbsolute(storedPath) && storedPath.startsWith(pwd)) {
+    // Absolute path from current user: strip pwd prefix
+    displayPath = storedPath.replace(pwd, "").replace(/^[\\/]/, "");
+  } else if (isAbsolute(storedPath)) {
+    // Absolute path from another user (shared mode): show full path
+    displayPath = storedPath;
+  } else {
+    displayPath = storedPath;
+  }
+
   let line_range = "";
   let content = "";
   switch (chunk.type) {
@@ -124,7 +136,7 @@ function formatChunk(chunk: ChunkType, show_content: boolean) {
       break;
   }
 
-  return `.${path}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
+  return `./${displayPath}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
 }
 
 function parseBooleanEnv(
@@ -256,6 +268,10 @@ export const search: Command = new CommanderCommand("search")
     "Enable agentic search to automatically refine queries and perform multiple searches",
     parseBooleanEnv(process.env.MGREP_AGENTIC, false),
   )
+  .option(
+    "-S, --shared",
+    "Enable shared mode for multi-user collaboration (uses regex suffix matching for search)",
+  )
   .argument("<pattern>", "The pattern to search for")
   .argument("[path]", "The path to search in")
   .allowUnknownOption(true)
@@ -273,6 +289,7 @@ export const search: Command = new CommanderCommand("search")
       maxFileCount?: number;
       web: boolean;
       agentic: boolean;
+      shared?: boolean;
     } = cmd.optsWithGlobals();
     if (exec_path?.startsWith("--")) {
       exec_path = "";
@@ -282,14 +299,19 @@ export const search: Command = new CommanderCommand("search")
     const cliOptions: CliConfigOptions = {
       maxFileSize: options.maxFileSize,
       maxFileCount: options.maxFileCount,
+      shared: options.shared,
     };
     const config = loadConfig(root, cliOptions);
 
-    const search_path = exec_path?.startsWith("/")
-      ? exec_path
-      : normalize(join(root, exec_path ?? ""));
+    const search_path =
+      exec_path && isAbsolute(exec_path)
+        ? exec_path
+        : normalize(join(root, exec_path ?? ""));
 
-    if (options.sync && isAtOrAboveHomeDirectory(search_path)) {
+    // In shared mode, sync from project root; in normal mode, sync from search path
+    const syncRoot = config.shared ? root : search_path;
+
+    if (options.sync && isAtOrAboveHomeDirectory(syncRoot)) {
       console.error(
         "Error: Cannot sync home directory or any parent directory.",
       );
@@ -307,7 +329,7 @@ export const search: Command = new CommanderCommand("search")
         const shouldReturn = await syncFiles(
           store,
           options.store,
-          search_path,
+          syncRoot,
           options.dryRun,
           config,
         );
@@ -320,15 +342,37 @@ export const search: Command = new CommanderCommand("search")
         ? [options.store, "mixedbread/web"]
         : [options.store];
 
-      const filters = {
-        all: [
-          {
-            key: "path",
-            operator: "starts_with" as const,
-            value: search_path,
-          },
-        ],
-      };
+      // In shared mode, use regex suffix matching so results from all users are found
+      // In normal mode, use starts_with with the absolute path
+      // "regex" operator is supported by the API but not yet in SDK types
+      let filters: { all: Array<{ key: string; operator: string; value: string }> } | undefined;
+      if (config.shared) {
+        const relativePath = toRelativePath(search_path, root);
+        if (relativePath) {
+          // Searching a subdirectory — match any absolute path ending with this suffix
+          const escaped = relativePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          filters = {
+            all: [
+              {
+                key: "path",
+                operator: "regex",
+                value: `.*/${escaped}($|/.*)`,
+              },
+            ],
+          };
+        }
+        // If relativePath is empty (searching from root), no filter — match all files in store
+      } else {
+        filters = {
+          all: [
+            {
+              key: "path",
+              operator: "starts_with",
+              value: search_path,
+            },
+          ],
+        };
+      }
 
       const searchOptions = {
         rerank: options.rerank,
@@ -342,7 +386,7 @@ export const search: Command = new CommanderCommand("search")
           pattern,
           parseInt(options.maxCount, 10),
           searchOptions,
-          filters,
+          filters as SearchFilter | undefined,
         );
         response = formatSearchResponse(results, options.content);
       } else {
@@ -351,7 +395,7 @@ export const search: Command = new CommanderCommand("search")
           pattern,
           parseInt(options.maxCount, 10),
           searchOptions,
-          filters,
+          filters as SearchFilter | undefined,
         );
         response = formatAskResponse(results, options.content);
       }
