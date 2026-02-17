@@ -24,9 +24,10 @@ export async function listOrganizations(accessToken: string) {
     },
   });
 
-  const organizations: Array<Organization> = await response.json();
+  const organizations: Array<Organization & { deletedAt?: string }> =
+    await response.json();
 
-  return organizations;
+  return organizations.filter((org) => !org.deletedAt);
 }
 
 export async function selectOrganization(
