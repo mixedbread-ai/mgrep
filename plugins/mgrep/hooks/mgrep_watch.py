@@ -39,9 +39,10 @@ if __name__ == "__main__":
         debug_log(f"PID file already exists: {pid_file}")
         sys.exit(1)
 
-    process = subprocess.Popen(["mgrep", "watch"], preexec_fn=os.setsid, stdout=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"), stderr=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"))
+    debug_log(f"Starting mgrep watch in cwd: {cwd}")
+    log_file = open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w")
+    process = subprocess.Popen(["mgrep", "watch"], cwd=cwd, preexec_fn=os.setsid, stdout=log_file, stderr=log_file)
     debug_log(f"Started mgrep watch process: {process.pid}")
-    debug_log(f"All environment variables: {os.environ}")
     with open(pid_file, "w") as handle:
         handle.write(str(process.pid))
 
