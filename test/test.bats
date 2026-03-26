@@ -420,6 +420,38 @@ teardown() {
     assert_output --partial 'file-1.txt'
 }
 
+@test "SessionStart hook removes stale PID files and exits cleanly" {
+    mkdir -p "$BATS_TMPDIR/fake-bin"
+    cat > "$BATS_TMPDIR/fake-bin/mgrep" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$BATS_TMPDIR/fake-bin/mgrep"
+    PATH="$BATS_TMPDIR/fake-bin:$PATH"
+
+    session_id="stale-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    printf '999999\n' > "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\",\"cwd\":\"$BATS_TMPDIR/test-store\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch.py\""
+    run bash -lc "$command"
+
+    assert_success
+    assert_output --partial 'SessionStart'
+    assert [ -f "$pid_file" ]
+}
+
+@test "SessionEnd hook exits cleanly when PID file is already gone" {
+    session_id="missing-pid-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    rm -f "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch_kill.py\""
+    run bash -lc "$command"
+
+    assert_success
+}
+
 @test "Config maxFileCount via YAML" {
     rm "$BATS_TMPDIR/mgrep-test-store.json"
 

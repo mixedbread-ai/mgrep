@@ -29,17 +29,52 @@ def read_hook_input():
         return None
 
 
+def pid_file_path(session_id: str | None) -> str:
+    return f"/tmp/mgrep-watch-pid-{session_id}.txt"
+
+
+def read_pid(pid_file: str) -> int | None:
+    try:
+        with open(pid_file) as handle:
+            return int(handle.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def is_pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
 
 if __name__ == "__main__":
     payload = read_hook_input()
+    if payload is None:
+        sys.exit(0)
     cwd = payload.get("cwd")
 
-    pid_file = f"/tmp/mgrep-watch-pid-{payload.get('session_id')}.txt"
+    pid_file = pid_file_path(payload.get("session_id"))
     if os.path.exists(pid_file):
-        debug_log(f"PID file already exists: {pid_file}")
-        sys.exit(1)
+        existing_pid = read_pid(pid_file)
+        if existing_pid is not None and is_pid_alive(existing_pid):
+            debug_log(f"mgrep watch already running with pid {existing_pid}, skipping")
+            sys.exit(0)
 
-    process = subprocess.Popen(["mgrep", "watch"], preexec_fn=os.setsid, stdout=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"), stderr=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"))
+        debug_log(f"Removing stale PID file: {pid_file}")
+        try:
+            os.remove(pid_file)
+        except OSError:
+            pass
+
+    process = subprocess.Popen(
+        ["mgrep", "watch"],
+        preexec_fn=os.setsid,
+        cwd=cwd or None,
+        stdout=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"),
+        stderr=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"),
+    )
     debug_log(f"Started mgrep watch process: {process.pid}")
     debug_log(f"All environment variables: {os.environ}")
     with open(pid_file, "w") as handle:

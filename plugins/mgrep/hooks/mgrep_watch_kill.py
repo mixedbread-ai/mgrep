@@ -33,11 +33,13 @@ def read_hook_input():
 if __name__ == "__main__":
     debug_log("Killing mgrep watch process")
     payload = read_hook_input()
+    if payload is None:
+        sys.exit(0)
 
     pid_file = f"/tmp/mgrep-watch-pid-{payload.get('session_id')}.txt"
     if not os.path.exists(pid_file):
         debug_log(f"PID file not found: {pid_file}")
-        sys.exit(1)
+        sys.exit(0)
     pid = int(open(pid_file).read().strip())
     debug_log(f"Killing mgrep watch process: {pid}")
     try:
