@@ -441,6 +441,30 @@ EOF
     assert [ -f "$pid_file" ]
 }
 
+@test "SessionStart hook emits context when watcher is already running" {
+    mkdir -p "$BATS_TMPDIR/fake-bin"
+    cat > "$BATS_TMPDIR/fake-bin/mgrep" <<'EOF'
+#!/bin/bash
+sleep 30
+EOF
+    chmod +x "$BATS_TMPDIR/fake-bin/mgrep"
+    PATH="$BATS_TMPDIR/fake-bin:$PATH"
+
+    session_id="running-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    sleep_process=$(sleep 30 & echo $!)
+    printf '%s\n' "$sleep_process" > "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\",\"cwd\":\"$BATS_TMPDIR/test-store\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch.py\""
+    run bash -lc "$command"
+
+    kill "$sleep_process" 2>/dev/null || true
+    rm -f "$pid_file"
+
+    assert_success
+    assert_output --partial 'SessionStart'
+}
+
 @test "SessionEnd hook exits cleanly when PID file is already gone" {
     session_id="missing-pid-test"
     pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
