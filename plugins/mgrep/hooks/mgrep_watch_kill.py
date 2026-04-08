@@ -5,6 +5,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from pid_utils import pid_file_path, read_pid
+
 DEBUG_LOG_FILE = Path(os.environ.get("MGREP_WATCH_KILL_LOG", "/tmp/mgrep-watch-kill.log"))
 
 
@@ -28,17 +30,24 @@ def read_hook_input():
         debug_log(f"Failed to decode JSON: {exc}")
         return None
 
-
-
 if __name__ == "__main__":
     debug_log("Killing mgrep watch process")
     payload = read_hook_input()
+    if payload is None:
+        sys.exit(0)
 
-    pid_file = f"/tmp/mgrep-watch-pid-{payload.get('session_id')}.txt"
+    pid_file = pid_file_path(payload.get("session_id"))
     if not os.path.exists(pid_file):
         debug_log(f"PID file not found: {pid_file}")
-        sys.exit(1)
-    pid = int(open(pid_file).read().strip())
+        sys.exit(0)
+    pid = read_pid(pid_file)
+    if pid is None:
+        debug_log(f"PID file unreadable: {pid_file}")
+        try:
+            os.remove(pid_file)
+        except OSError:
+            pass
+        sys.exit(0)
     debug_log(f"Killing mgrep watch process: {pid}")
     try:
         os.kill(pid, signal.SIGKILL)

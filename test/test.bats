@@ -420,6 +420,92 @@ teardown() {
     assert_output --partial 'file-1.txt'
 }
 
+@test "SessionStart hook removes stale PID files and exits cleanly" {
+    mkdir -p "$BATS_TMPDIR/fake-bin"
+    cat > "$BATS_TMPDIR/fake-bin/mgrep" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+    chmod +x "$BATS_TMPDIR/fake-bin/mgrep"
+    PATH="$BATS_TMPDIR/fake-bin:$PATH"
+
+    session_id="stale-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    printf '999999\n' > "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\",\"cwd\":\"$BATS_TMPDIR/test-store\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch.py\""
+    run bash -lc "$command"
+
+    assert_success
+    assert_output --partial 'SessionStart'
+    assert [ -f "$pid_file" ]
+}
+
+@test "SessionStart hook emits context when watcher is already running" {
+    mkdir -p "$BATS_TMPDIR/fake-bin"
+    cat > "$BATS_TMPDIR/fake-bin/mgrep" <<'EOF'
+#!/bin/bash
+sleep 30
+EOF
+    chmod +x "$BATS_TMPDIR/fake-bin/mgrep"
+    PATH="$BATS_TMPDIR/fake-bin:$PATH"
+
+    session_id="running-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    "$BATS_TMPDIR/fake-bin/mgrep" watch &
+    watch_process=$!
+    printf '%s\n' "$watch_process" > "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\",\"cwd\":\"$BATS_TMPDIR/test-store\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch.py\""
+    run bash -lc "$command"
+
+    kill "$watch_process" 2>/dev/null || true
+    rm -f "$pid_file"
+
+    assert_success
+    assert_output --partial 'SessionStart'
+}
+
+@test "SessionStart hook replaces unrelated live PID files" {
+    mkdir -p "$BATS_TMPDIR/fake-bin"
+    cat > "$BATS_TMPDIR/fake-bin/mgrep" <<'EOF'
+#!/bin/bash
+sleep 30
+EOF
+    chmod +x "$BATS_TMPDIR/fake-bin/mgrep"
+    PATH="$BATS_TMPDIR/fake-bin:$PATH"
+
+    session_id="reused-pid-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    sleep 30 &
+    unrelated_process=$!
+    printf '%s\n' "$unrelated_process" > "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\",\"cwd\":\"$BATS_TMPDIR/test-store\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch.py\""
+    run bash -lc "$command"
+
+    new_pid=$(cat "$pid_file")
+
+    kill "$unrelated_process" 2>/dev/null || true
+    kill "$new_pid" 2>/dev/null || true
+    rm -f "$pid_file"
+
+    assert_success
+    assert_output --partial 'SessionStart'
+    assert [ "$new_pid" != "$unrelated_process" ]
+}
+
+@test "SessionEnd hook exits cleanly when PID file is already gone" {
+    session_id="missing-pid-test"
+    pid_file="/tmp/mgrep-watch-pid-$session_id.txt"
+    rm -f "$pid_file"
+
+    command="printf '%s' '{\"session_id\":\"$session_id\"}' | python3 \"$DIR/../plugins/mgrep/hooks/mgrep_watch_kill.py\""
+    run bash -lc "$command"
+
+    assert_success
+}
+
 @test "Config maxFileCount via YAML" {
     rm "$BATS_TMPDIR/mgrep-test-store.json"
 
