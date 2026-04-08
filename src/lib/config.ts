@@ -5,7 +5,7 @@ import YAML from "yaml";
 import { z } from "zod";
 
 const LOCAL_CONFIG_FILES = [".mgreprc.yaml", ".mgreprc.yml"] as const;
-const GLOBAL_CONFIG_DIR = ".config/mgrep";
+export const GLOBAL_CONFIG_DIR = ".config/mgrep";
 const GLOBAL_CONFIG_FILES = ["config.yaml", "config.yml"] as const;
 const ENV_PREFIX = "MGREP_";
 const DEFAULT_MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -14,6 +14,7 @@ const DEFAULT_MAX_FILE_COUNT = 1000;
 const ConfigSchema = z.object({
   maxFileSize: z.number().positive().optional(),
   maxFileCount: z.number().positive().optional(),
+  shared: z.boolean().optional(),
 });
 
 /**
@@ -22,6 +23,7 @@ const ConfigSchema = z.object({
 export interface CliConfigOptions {
   maxFileSize?: number;
   maxFileCount?: number;
+  shared?: boolean;
 }
 
 /**
@@ -41,11 +43,20 @@ export interface MgrepConfig {
    * @default 1000
    */
   maxFileCount: number;
+
+  /**
+   * Enable shared mode for multi-user collaboration.
+   * When enabled, search uses regex suffix matching to find results across
+   * users who may have different absolute paths for the same project.
+   * @default false
+   */
+  shared: boolean;
 }
 
-const DEFAULT_CONFIG: MgrepConfig = {
+export const DEFAULT_CONFIG: MgrepConfig = {
   maxFileSize: DEFAULT_MAX_FILE_SIZE,
   maxFileCount: DEFAULT_MAX_FILE_COUNT,
+  shared: false,
 };
 
 const configCache = new Map<string, MgrepConfig>();
@@ -91,13 +102,28 @@ function findConfig(candidates: string[]): Partial<MgrepConfig> | null {
   return null;
 }
 
-function getGlobalConfigPaths(): string[] {
+export function getGlobalConfigPaths(): string[] {
   const configDir = path.join(os.homedir(), GLOBAL_CONFIG_DIR);
   return GLOBAL_CONFIG_FILES.map((file) => path.join(configDir, file));
 }
 
 function getLocalConfigPaths(dir: string): string[] {
   return LOCAL_CONFIG_FILES.map((file) => path.join(dir, file));
+}
+
+/**
+ * Parses a boolean from an environment variable string
+ */
+function parseBooleanEnv(value: string | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  const lower = value.toLowerCase();
+  if (lower === "1" || lower === "true" || lower === "yes" || lower === "y") {
+    return true;
+  }
+  if (lower === "0" || lower === "false" || lower === "no" || lower === "n") {
+    return false;
+  }
+  return undefined;
 }
 
 /**
@@ -122,6 +148,11 @@ function loadEnvConfig(): Partial<MgrepConfig> {
     if (!Number.isNaN(parsed) && parsed > 0) {
       config.maxFileCount = parsed;
     }
+  }
+
+  const sharedEnv = parseBooleanEnv(process.env[`${ENV_PREFIX}SHARED`]);
+  if (sharedEnv !== undefined) {
+    config.shared = sharedEnv;
   }
 
   return config;
@@ -176,6 +207,9 @@ function filterUndefinedCliOptions(
   if (options.maxFileCount !== undefined) {
     result.maxFileCount = options.maxFileCount;
   }
+  if (options.shared !== undefined) {
+    result.shared = options.shared;
+  }
   return result;
 }
 
@@ -224,3 +258,54 @@ export function formatFileSize(bytes: number): string {
 
   return `${size.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
 }
+
+/**
+ * Reads the global config file, returning raw parsed values (without defaults).
+ *
+ * @returns The parsed config values or an empty object if no global config exists
+ */
+export function readGlobalConfig(): Partial<MgrepConfig> {
+  return findConfig(getGlobalConfigPaths()) ?? {};
+}
+
+/**
+ * Returns the path to the global config file, creating the directory if needed.
+ */
+export function getGlobalConfigFilePath(): string {
+  const configDir = path.join(os.homedir(), GLOBAL_CONFIG_DIR);
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+  return path.join(configDir, GLOBAL_CONFIG_FILES[0]);
+}
+
+/**
+ * Writes a partial config to the global config file.
+ * Merges with existing global config values.
+ *
+ * @param updates - The config values to write
+ */
+export function writeGlobalConfig(updates: Partial<MgrepConfig>): void {
+  const existing = readGlobalConfig();
+  const merged = { ...existing, ...updates };
+  const filePath = getGlobalConfigFilePath();
+  fs.writeFileSync(filePath, YAML.stringify(merged), "utf-8");
+  clearConfigCache();
+}
+
+/**
+ * Saves a config object directly to the global config file without merging.
+ *
+ * @param config - The complete config values to save
+ */
+export function saveGlobalConfig(config: Partial<MgrepConfig>): void {
+  const filePath = getGlobalConfigFilePath();
+  fs.writeFileSync(filePath, YAML.stringify(config), "utf-8");
+  clearConfigCache();
+}
+
+/**
+ * Valid configuration key names
+ */
+export const CONFIG_KEYS = ["maxFileSize", "maxFileCount", "shared"] as const;
+export type ConfigKey = (typeof CONFIG_KEYS)[number];
