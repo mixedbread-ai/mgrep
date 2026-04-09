@@ -53,6 +53,8 @@
     "istextorbinary": "^9.5.0",
     "open": "^10.2.0",
     "ora": "^5.4.1",
+    "pid-cwd": "^1.2.0",
+    "ps-list": "^9.0.0",
     "p-limit": "^3.1.0",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^5.0.0",
