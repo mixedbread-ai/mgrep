@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { program } from "commander";
+import { config } from "./commands/config.js";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
 import { search } from "./commands/search.js";
@@ -39,6 +40,7 @@ program
 
 program.addCommand(search, { isDefault: true });
 program.addCommand(watch);
+program.addCommand(config);
 program.addCommand(installClaudeCode);
 program.addCommand(uninstallClaudeCode);
 program.addCommand(installCodex);

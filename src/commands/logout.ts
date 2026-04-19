@@ -1,6 +1,7 @@
 import { outro } from "@clack/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
+import { clearCachedOrganization } from "../lib/organizations.js";
 import { deleteToken, getStoredToken } from "../lib/token.js";
 
 export async function logoutAction() {
@@ -11,6 +12,7 @@ export async function logoutAction() {
   }
 
   await deleteToken();
+  await clearCachedOrganization();
   outro(chalk.green("✅ Successfully logged out"));
 }
 
