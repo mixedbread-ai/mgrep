@@ -591,3 +591,73 @@ EOF
     assert_output --partial 'file-in-foo.txt'
     refute_output --partial 'file-in-foobar.txt'
 }
+
+@test "Update command is registered" {
+    run mgrep --help
+
+    assert_success
+    assert_output --partial 'update'
+}
+
+@test "Update help works" {
+    run mgrep update --help
+
+    assert_success
+    assert_output --partial 'Update mgrep to the latest version'
+}
+
+@test "SessionStart hook surfaces update notice when cache shows newer version" {
+    HOOK_DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )/../plugins/mgrep/hooks"
+    FAKE_HOME="$BATS_TMPDIR/fake-home-$$"
+    mkdir -p "$FAKE_HOME/.mgrep"
+    echo '{"latestVersion":"99.0.0","checkedAt":"2026-04-22T00:00:00.000Z"}' > "$FAKE_HOME/.mgrep/update-check.json"
+
+    run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-update-notice","cwd":"/tmp"}'
+
+    assert_success
+    assert_output --partial 'mgrep update is available'
+    assert_output --partial '99.0.0'
+
+    # cleanup the spawned watch process
+    if [ -f "/tmp/mgrep-watch-pid-bats-test-update-notice.txt" ]; then
+        kill -9 "$(cat /tmp/mgrep-watch-pid-bats-test-update-notice.txt)" 2>/dev/null || true
+        rm -f "/tmp/mgrep-watch-pid-bats-test-update-notice.txt"
+    fi
+    rm -rf "$FAKE_HOME"
+}
+
+@test "SessionStart hook omits update notice when cache is missing" {
+    HOOK_DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )/../plugins/mgrep/hooks"
+    FAKE_HOME="$BATS_TMPDIR/fake-home-$$"
+    mkdir -p "$FAKE_HOME"
+
+    run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-no-cache","cwd":"/tmp"}'
+
+    assert_success
+    refute_output --partial 'mgrep update is available'
+
+    if [ -f "/tmp/mgrep-watch-pid-bats-test-no-cache.txt" ]; then
+        kill -9 "$(cat /tmp/mgrep-watch-pid-bats-test-no-cache.txt)" 2>/dev/null || true
+        rm -f "/tmp/mgrep-watch-pid-bats-test-no-cache.txt"
+    fi
+    rm -rf "$FAKE_HOME"
+}
+
+@test "SessionStart hook tolerates corrupt update cache" {
+    HOOK_DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )/../plugins/mgrep/hooks"
+    FAKE_HOME="$BATS_TMPDIR/fake-home-$$"
+    mkdir -p "$FAKE_HOME/.mgrep"
+    echo 'not json {{{' > "$FAKE_HOME/.mgrep/update-check.json"
+
+    run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-corrupt-cache","cwd":"/tmp"}'
+
+    assert_success
+    refute_output --partial 'mgrep update is available'
+    assert_output --partial 'You MUST use the mgrep skill'
+
+    if [ -f "/tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt" ]; then
+        kill -9 "$(cat /tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt)" 2>/dev/null || true
+        rm -f "/tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt"
+    fi
+    rm -rf "$FAKE_HOME"
+}

@@ -11,18 +11,17 @@ const ENV_PREFIX = "MGREP_";
 const DEFAULT_MAX_FILE_SIZE = 1 * 1024 * 1024;
 const DEFAULT_MAX_FILE_COUNT = 1000;
 
+const AutoUpdateModeSchema = z.enum(["prompt", "notify", "disabled"]);
+
+export type AutoUpdateMode = z.infer<typeof AutoUpdateModeSchema>;
+
 const ConfigSchema = z.object({
-  maxFileSize: z.number().positive().optional(),
-  maxFileCount: z.number().positive().optional(),
+  maxFileSize: z.coerce.number().positive().optional(),
+  maxFileCount: z.coerce.number().positive().optional(),
+  autoUpdate: AutoUpdateModeSchema.optional(),
 });
 
-/**
- * CLI options that can override config
- */
-export interface CliConfigOptions {
-  maxFileSize?: number;
-  maxFileCount?: number;
-}
+export type CliConfigOptions = z.infer<typeof ConfigSchema>;
 
 /**
  * Mgrep configuration options
@@ -41,11 +40,21 @@ export interface MgrepConfig {
    * @default 1000
    */
   maxFileCount: number;
+
+  /**
+   * Controls how update notifications are surfaced when a newer version is available.
+   * - "prompt": ask the user with a Y/n confirmation on first interactive invocation per day
+   * - "notify": print a one-line notice without prompting
+   * - "disabled": never check or surface updates
+   * @default "prompt"
+   */
+  autoUpdate: AutoUpdateMode;
 }
 
 const DEFAULT_CONFIG: MgrepConfig = {
   maxFileSize: DEFAULT_MAX_FILE_SIZE,
   maxFileCount: DEFAULT_MAX_FILE_COUNT,
+  autoUpdate: "prompt",
 };
 
 const configCache = new Map<string, MgrepConfig>();
@@ -106,25 +115,19 @@ function getLocalConfigPaths(dir: string): string[] {
  * @returns The config values from environment variables
  */
 function loadEnvConfig(): Partial<MgrepConfig> {
-  const config: Partial<MgrepConfig> = {};
-
-  const maxFileSizeEnv = process.env[`${ENV_PREFIX}MAX_FILE_SIZE`];
-  if (maxFileSizeEnv) {
-    const parsed = Number.parseInt(maxFileSizeEnv, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      config.maxFileSize = parsed;
-    }
-  }
-
-  const maxFileCountEnv = process.env[`${ENV_PREFIX}MAX_FILE_COUNT`];
-  if (maxFileCountEnv) {
-    const parsed = Number.parseInt(maxFileCountEnv, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      config.maxFileCount = parsed;
-    }
-  }
-
-  return config;
+  // Drop unset/empty keys before parsing: empty strings would coerce to NaN
+  // (failing .positive()) or invalid enum values, and unset keys would survive
+  // .optional() as explicit undefineds — those then override DEFAULT_CONFIG via
+  // the spread merge below.
+  const raw = Object.fromEntries(
+    Object.entries({
+      maxFileSize: process.env[`${ENV_PREFIX}MAX_FILE_SIZE`],
+      maxFileCount: process.env[`${ENV_PREFIX}MAX_FILE_COUNT`],
+      autoUpdate: process.env[`${ENV_PREFIX}AUTO_UPDATE`],
+    }).filter(([, v]) => v !== undefined && v !== ""),
+  );
+  const result = ConfigSchema.safeParse(raw);
+  return result.success ? result.data : {};
 }
 
 /**
@@ -175,6 +178,9 @@ function filterUndefinedCliOptions(
   }
   if (options.maxFileCount !== undefined) {
     result.maxFileCount = options.maxFileCount;
+  }
+  if (options.autoUpdate !== undefined) {
+    result.autoUpdate = options.autoUpdate;
   }
   return result;
 }
