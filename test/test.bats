@@ -438,6 +438,8 @@ EOF
 
     assert_success
     assert_output --partial 'SessionStart'
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial "from $BATS_TMPDIR/test-store."
     assert [ -f "$pid_file" ]
 }
 
@@ -464,6 +466,8 @@ EOF
 
     assert_success
     assert_output --partial 'SessionStart'
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial "from $BATS_TMPDIR/test-store."
 }
 
 @test "SessionStart hook replaces unrelated live PID files" {
@@ -492,6 +496,8 @@ EOF
 
     assert_success
     assert_output --partial 'SessionStart'
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial "from $BATS_TMPDIR/test-store."
     assert [ "$new_pid" != "$unrelated_process" ]
 }
 
@@ -615,6 +621,8 @@ EOF
     run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-update-notice","cwd":"/tmp"}'
 
     assert_success
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial 'from /tmp.'
     assert_output --partial 'mgrep update is available'
     assert_output --partial '99.0.0'
 
@@ -634,6 +642,8 @@ EOF
     run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-no-cache","cwd":"/tmp"}'
 
     assert_success
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial 'from /tmp.'
     refute_output --partial 'mgrep update is available'
 
     if [ -f "/tmp/mgrep-watch-pid-bats-test-no-cache.txt" ]; then
@@ -652,12 +662,31 @@ EOF
     run env HOME="$FAKE_HOME" MGREP_WATCH_LOG="$FAKE_HOME/watch.log" python3 "$HOOK_DIR/mgrep_watch.py" <<< '{"session_id":"bats-test-corrupt-cache","cwd":"/tmp"}'
 
     assert_success
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial 'from /tmp.'
     refute_output --partial 'mgrep update is available'
-    assert_output --partial 'You MUST use the mgrep skill'
 
     if [ -f "/tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt" ]; then
         kill -9 "$(cat /tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt)" 2>/dev/null || true
         rm -f "/tmp/mgrep-watch-pid-bats-test-corrupt-cache.txt"
     fi
     rm -rf "$FAKE_HOME"
+}
+
+@test "SessionStart context contains no mandatory search steering" {
+    run env HOME="$BATS_TMPDIR/neutral-home" python3 -c '
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+from mgrep_watch import session_start_response
+print(json.dumps(session_start_response(sys.argv[2])))
+' "$DIR/../plugins/mgrep/hooks" "$BATS_TMPDIR/test-store"
+
+    assert_success
+    assert_output --partial 'mgrep semantic search is available'
+    assert_output --partial "from $BATS_TMPDIR/test-store."
+    refute_output --partial 'CRITICAL'
+    refute_output --partial 'MUST'
+    refute_output --partial 'NEVER'
+    refute_output --partial 'MANDATORY'
 }
