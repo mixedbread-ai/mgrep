@@ -1,4 +1,3 @@
-import { join, normalize } from "node:path";
 import type { Command } from "commander";
 import { Command as CommanderCommand, InvalidArgumentError } from "commander";
 import {
@@ -8,13 +7,8 @@ import {
 } from "../lib/config.js";
 import { createFileSystem, createStore } from "../lib/context.js";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
-import type {
-  AskResponse,
-  ChunkType,
-  FileMetadata,
-  SearchResponse,
-  Store,
-} from "../lib/store.js";
+import { resolveSearchPath, runSearch } from "../lib/search.js";
+import type { Store } from "../lib/store.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -25,107 +19,6 @@ import {
   MaxFileCountExceededError,
   QuotaExceededError,
 } from "../lib/utils.js";
-
-function extractSources(response: AskResponse): { [key: number]: ChunkType } {
-  const sources: { [key: number]: ChunkType } = {};
-  const answer = response.answer;
-
-  // Match ALL cite tags and capture the i="..."
-  const citeTags = answer.match(/<cite i="(\d+(?:-\d+)?)"/g) ?? [];
-
-  for (const tag of citeTags) {
-    // Extract the index or index range inside the tag.
-    const index = tag.match(/i="(\d+(?:-\d+)?)"/)?.[1];
-    if (!index) continue;
-
-    // Case 1: Single index
-    if (!index.includes("-")) {
-      const idx = Number(index);
-      if (!Number.isNaN(idx) && idx < response.sources.length) {
-        sources[idx] = response.sources[idx];
-      }
-      continue;
-    }
-
-    // Case 2: Range "start-end"
-    const [start, end] = index.split("-").map(Number);
-
-    if (
-      !Number.isNaN(start) &&
-      !Number.isNaN(end) &&
-      start >= 0 &&
-      end >= start &&
-      end < response.sources.length
-    ) {
-      for (let i = start; i <= end; i++) {
-        sources[i] = response.sources[i];
-      }
-    }
-  }
-
-  return sources;
-}
-
-function formatAskResponse(response: AskResponse, show_content: boolean) {
-  const sources = extractSources(response);
-  const sourceEntries = Object.entries(sources).map(
-    ([index, chunk]) => `${index}: ${formatChunk(chunk, show_content)}`,
-  );
-  return `${response.answer}\n\n${sourceEntries.join("\n")}`;
-}
-
-function formatSearchResponse(response: SearchResponse, show_content: boolean) {
-  return response.data
-    .map((chunk) => formatChunk(chunk, show_content))
-    .join("\n");
-}
-
-function isWebResult(chunk: ChunkType): boolean {
-  return (
-    "filename" in chunk &&
-    typeof chunk.filename === "string" &&
-    chunk.filename.startsWith("http")
-  );
-}
-
-function formatChunk(chunk: ChunkType, show_content: boolean) {
-  const pwd = process.cwd();
-
-  if (isWebResult(chunk) && chunk.type === "text") {
-    const url = "filename" in chunk ? chunk.filename : "Unknown URL";
-    const content = show_content ? chunk.text : "";
-    return `${url} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
-  }
-
-  const path =
-    (chunk.metadata as FileMetadata)?.path?.replace(pwd, "") ?? "Unknown path";
-  let line_range = "";
-  let content = "";
-  switch (chunk.type) {
-    case "text": {
-      const start_line = (chunk.generated_metadata?.start_line as number) + 1;
-      const end_line =
-        start_line + (chunk.generated_metadata?.num_lines as number);
-      line_range = `:${start_line}-${end_line}`;
-      content = show_content ? chunk.text : "";
-      break;
-    }
-    case "image_url":
-      line_range =
-        chunk.generated_metadata?.type === "pdf"
-          ? `, page ${chunk.chunk_index + 1}`
-          : "";
-      break;
-    case "audio_url":
-      line_range = "";
-      break;
-    case "video_url":
-      line_range = "";
-      break;
-  }
-
-  return `.${path}${line_range} (${(chunk.score * 100).toFixed(2)}% match)${content ? `\n${content}` : ""}`;
-}
 
 function parseBooleanEnv(
   envVar: string | undefined,
@@ -138,9 +31,14 @@ function parseBooleanEnv(
 
 /**
  * Syncs local files to the store with progress indication.
+ * @param store The authenticated store.
+ * @param storeName The store to sync.
+ * @param root The absolute directory to sync.
+ * @param dryRun Whether to report changes without applying them.
+ * @param config The project indexing limits and settings.
  * @returns true if the caller should return early (dry-run mode), false otherwise
  */
-async function syncFiles(
+export async function syncFiles(
   store: Store,
   storeName: string,
   root: string,
@@ -285,9 +183,7 @@ export const search: Command = new CommanderCommand("search")
     };
     const config = loadConfig(root, cliOptions);
 
-    const search_path = exec_path?.startsWith("/")
-      ? exec_path
-      : normalize(join(root, exec_path ?? ""));
+    const search_path = resolveSearchPath(root, exec_path);
 
     if (options.sync && isAtOrAboveHomeDirectory(search_path)) {
       console.error(
@@ -316,45 +212,21 @@ export const search: Command = new CommanderCommand("search")
         }
       }
 
-      const storeIds = options.web
-        ? [options.store, "mixedbread/web"]
-        : [options.store];
-
-      const filters = {
-        all: [
-          {
-            key: "path",
-            operator: "starts_with" as const,
-            value: search_path,
-          },
-        ],
-      };
-
-      const searchOptions = {
-        rerank: options.rerank,
-        ...(options.agentic && { agentic: true }),
-      };
-
-      let response: string;
-      if (!options.answer) {
-        const results = await store.search(
-          storeIds,
-          pattern,
-          parseInt(options.maxCount, 10),
-          searchOptions,
-          filters,
-        );
-        response = formatSearchResponse(results, options.content);
-      } else {
-        const results = await store.ask(
-          storeIds,
-          pattern,
-          parseInt(options.maxCount, 10),
-          searchOptions,
-          filters,
-        );
-        response = formatAskResponse(results, options.content);
-      }
+      const response = await runSearch(
+        store,
+        {
+          store: options.store,
+          query: pattern,
+          path: search_path,
+          maxCount: parseInt(options.maxCount, 10),
+          content: options.content,
+          answer: options.answer,
+          web: options.web,
+          rerank: options.rerank,
+          agentic: options.agentic,
+        },
+        root,
+      );
 
       console.log(response);
     } catch (error) {

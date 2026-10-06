@@ -46,7 +46,7 @@ teardown() {
     run mgrep --version
 
     assert_success
-    assert_output --regexp '^[0-9]+\.[0-9]+\.[0-9]+$'
+    assert_equal "$output" "$(node -p "JSON.parse(require('node:fs').readFileSync('$DIR/../package.json', 'utf8')).version")"
 }
 
 @test "Search" {

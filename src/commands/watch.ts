@@ -4,6 +4,7 @@ import { Command, InvalidArgumentError } from "commander";
 import { type CliConfigOptions, loadConfig } from "../lib/config.js";
 import { createFileSystem, createStore } from "../lib/context.js";
 import { DEFAULT_IGNORE_PATTERNS } from "../lib/file.js";
+import type { Store } from "../lib/store.js";
 import {
   createIndexingSpinner,
   formatDryRunSummary,
@@ -22,13 +23,20 @@ export interface WatchOptions {
   dryRun: boolean;
   maxFileSize?: number;
   maxFileCount?: number;
+  createStore?: () => Promise<Store>;
 }
 
-export async function startWatch(options: WatchOptions): Promise<void> {
+/**
+ * Starts in-process synchronization and file watchers for the current directory.
+ * @param options Store, sync limits, and optional non-interactive store factory.
+ * @returns Whether initial synchronization completed and file watchers were set up,
+ * regardless of per-file upload errors.
+ */
+export async function startWatch(options: WatchOptions): Promise<boolean> {
   let refreshInterval: NodeJS.Timeout | undefined;
 
   try {
-    const store = await createStore();
+    const store = await (options.createStore ?? createStore)();
 
     // Refresh JWT token every 5 minutes (before 15-minute expiration)
     if (!options.dryRun) {
@@ -60,7 +68,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
         "Please run this command from within a specific project subdirectory.",
       );
       process.exitCode = 1;
-      return;
+      return false;
     }
 
     const cliOptions: CliConfigOptions = {
@@ -112,7 +120,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
             includeTotal: true,
           }),
         );
-        return;
+        return false;
       }
     } catch (e) {
       if (e instanceof QuotaExceededError) {
@@ -123,7 +131,9 @@ export async function startWatch(options: WatchOptions): Promise<void> {
         console.error(
           "   Upgrade your plan at https://platform.mixedbread.com to continue syncing.\n",
         );
-        process.exit(1);
+        clearInterval(refreshInterval);
+        process.exitCode = 1;
+        return false;
       }
       if (e instanceof MaxFileCountExceededError) {
         spinner.fail("File count exceeded");
@@ -131,7 +141,9 @@ export async function startWatch(options: WatchOptions): Promise<void> {
         console.error(
           "   Increase the limit with --max-file-count or MGREP_MAX_FILE_COUNT environment variable.\n",
         );
-        process.exit(1);
+        clearInterval(refreshInterval);
+        process.exitCode = 1;
+        return false;
       }
       spinner.fail("Initial upload failed");
       throw e;
@@ -146,6 +158,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
     // the callback filter runs, which exhausts the kernel watcher limit on
     // large repos.
     const watchers = new Map<string, fs.FSWatcher>();
+    let watchSetupSucceeded = true;
 
     function isMissingPathError(error: unknown): boolean {
       return (
@@ -163,6 +176,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           return null;
         }
 
+        watchSetupSucceeded = false;
         console.warn(`Warning: failed to inspect path ${filePath}:`, error);
         return undefined;
       }
@@ -270,8 +284,14 @@ export async function startWatch(options: WatchOptions): Promise<void> {
 
           handleFileEvent(eventType, dirPath, name);
         });
+        watcher.on("error", (error) => {
+          watchSetupSucceeded = false;
+          console.error(`Failed to watch ${dirPath}:`, error);
+          closeWatcher(dirPath);
+        });
         watchers.set(dirPath, watcher);
       } catch (error) {
+        watchSetupSucceeded = false;
         console.warn(`Warning: failed to watch ${dirPath}:`, error);
         return;
       }
@@ -285,11 +305,15 @@ export async function startWatch(options: WatchOptions): Promise<void> {
           watchDirectory(path.join(dirPath, entry.name));
         }
       } catch (error) {
+        watchSetupSucceeded = false;
         console.warn(`Warning: failed to read directory ${dirPath}:`, error);
       }
     }
 
     watchDirectory(watchRoot);
+    // fs.watch can report startup failures asynchronously.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    return watchSetupSucceeded && watchers.has(watchRoot);
   } catch (error) {
     if (refreshInterval) {
       clearInterval(refreshInterval);
@@ -297,6 +321,7 @@ export async function startWatch(options: WatchOptions): Promise<void> {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to start watcher:", message);
     process.exitCode = 1;
+    return false;
   }
 }
 

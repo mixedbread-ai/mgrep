@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "mgrep": {
+      "command": "mgrep",
+      "args": ["mcp", "--expose-tools"],
+      "env_vars": ["MXBAI_API_KEY", "MXBAI_STORE"]
+    }
+  }
+}
