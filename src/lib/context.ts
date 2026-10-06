@@ -13,16 +13,29 @@ const BASE_URL = isDevelopment()
   ? "http://localhost:8000"
   : "https://api.mixedbread.com";
 
+/** Options controlling store authentication. */
+export interface CreateStoreOptions {
+  interactive?: boolean;
+}
+
 /**
  * Creates an authenticated Store instance
  * Supports authentication via MXBAI_API_KEY env var or OAuth token
+ * @param options Authentication options; interactive defaults to true.
+ * Set interactive to false to skip the login prompt and let getJWTToken throw
+ * when credentials are missing. Test mode always returns a TestStore first.
+ * @returns The authenticated store, or a TestStore in test mode.
  */
-export async function createStore(): Promise<Store> {
+export async function createStore(
+  options: CreateStoreOptions = {},
+): Promise<Store> {
   if (isTest) {
     return new TestStore();
   }
 
-  await ensureAuthenticated();
+  if (options.interactive ?? true) {
+    await ensureAuthenticated();
+  }
 
   async function createClient() {
     const jwtToken = await getJWTToken();

@@ -50,7 +50,7 @@ if __name__ == "__main__":
         sys.exit(0)
     debug_log(f"Killing mgrep watch process: {pid}")
     try:
-        os.kill(pid, signal.SIGKILL)
+        os.kill(pid, signal.SIGTERM)
         debug_log(f"Killed mgrep watch process: {pid}")
     except ProcessLookupError:
         debug_log(f"Process {pid} already exited")

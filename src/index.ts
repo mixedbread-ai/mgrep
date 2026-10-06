@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { program } from "commander";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
@@ -19,16 +16,10 @@ import { installDroid, uninstallDroid } from "./install/droid.js";
 import { installOpencode, uninstallOpencode } from "./install/opencode.js";
 import { setupLogger } from "./lib/logger.js";
 import { maybeShowUpdateNotice } from "./lib/update-notice.js";
+import { getPackageVersion } from "./lib/version.js";
 import { runVersionCheck } from "./lib/version-check.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const currentVersion = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "../package.json"), {
-    encoding: "utf-8",
-  }),
-).version as string;
+const currentVersion = getPackageVersion();
 
 // Background-check worker path: same binary, re-execed with this env var.
 // Performs a single registry fetch + cache write, then exits.

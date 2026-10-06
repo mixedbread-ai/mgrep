@@ -17,7 +17,7 @@ import {
 
 const SUPPRESSED_COMMANDS = new Set([
   "watch",
-  "watch-mcp",
+  "mcp",
   "update",
   "login",
   "logout",

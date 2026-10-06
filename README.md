@@ -108,6 +108,44 @@ These commands sign you in (if needed) and add Mixedbread `mgrep` support to the
 agent. After that you only have to start the agent in your project folder, thats
 it.
 
+### Codex
+
+With the Codex CLI installed, run:
+
+```bash
+mgrep install-codex
+```
+
+This authenticates with Mixedbread, adds the `Mixedbread-Grep` marketplace, and
+installs `mgrep@Mixedbread-Grep`. The plugin includes an MCP server with a
+read-only `search` tool and a short skill. The MCP server syncs the session's
+project directory in the background while Codex runs.
+
+A SessionStart hook adds search guidance on startup and resume, helping Codex
+choose semantic search for conceptual or cross-file questions and rg or grep for
+exact matches. On first start, Codex asks you to review the hook ("Hooks need
+review"); you can also review it with `/hooks`. This one-time review allows the
+hook to run. The hook only adds context; the MCP server owns background sync.
+
+Use MCP `search` for conceptual questions; `path` is optional and defaults to the
+session's project directory. Use rg or grep for exact strings, symbol names, and
+regexes. The MCP server runs `mgrep mcp --expose-tools`. Searches within the
+project wait for the watcher's initial sync. If the watcher cannot start, or the
+search path is outside the project, the first search syncs that root once.
+
+The plugin forwards `MXBAI_API_KEY` and `MXBAI_STORE` from Codex's environment.
+You can also authenticate with `mgrep login`. No API key is written into plugin
+configuration. To install from a local checkout or another Git URL, set
+`MGREP_CODEX_MARKETPLACE` before running `mgrep install-codex`.
+
+```bash
+mgrep uninstall-codex
+```
+
+Uninstall removes the plugin, its marketplace, and the legacy MCP registration.
+Both commands remove the old mgrep block from `$CODEX_HOME/AGENTS.md` and
+`~/.codex/AGENTS.md`, preserving surrounding instructions.
+
 ### More Agents Coming Soon
 
 More agents (Cursor, Windsurf, etc.) are on the way—this section will grow as soon as each integration lands.
@@ -244,6 +282,20 @@ mgrep watch  # index the current repository and keep the Mixedbread store in syn
 mgrep watch --max-file-size 1048576  # limit uploads to files under 1MB
 mgrep watch --max-file-count 5000  # limit sync to 5000 changed files or fewer
 ```
+
+#### Multiple sessions
+
+Watchers using the same store coordinate across sessions: the first started
+watcher owns each directory tree. Later sessions covered by it stand by without
+syncing or watching files, and take over when it exits. A parent started after a
+child watcher leaves that child's subtree to the child, then takes it over if
+the child exits.
+
+A folder containing `.mgreprc.yaml` or `.mgreprc.yml` is a configuration boundary:
+ancestor watchers always exclude it, so a session in that folder gets its own
+watcher. Boundaries are computed when a watcher becomes active, including on
+takeover; restart watchers after adding or removing local config files.
+Dry runs skip coordination.
 
 ## Mixedbread under the hood
 

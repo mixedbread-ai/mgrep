@@ -6,13 +6,10 @@ import { cancel, confirm, isCancel } from "@clack/prompts";
 import { isText } from "istextorbinary";
 import pLimit from "p-limit";
 import xxhashWasm from "xxhash-wasm";
-import { loginAction } from "../commands/login.js";
 import { exceedsMaxFileSize, type MgrepConfig } from "./config.js";
 import type { FileSystem } from "./file.js";
 import type { Store } from "./store.js";
 import type { InitialSyncProgress, InitialSyncResult } from "./sync-helpers.js";
-
-import { getStoredToken } from "./token.js";
 
 export const isTest = process.env.MGREP_IS_TEST === "1";
 
@@ -43,7 +40,13 @@ function isQuotaError(errorMessage: string): boolean {
   );
 }
 
-function isSubpath(parent: string, child: string): boolean {
+/**
+ * Checks strict containment using path separators (callers supply real paths).
+ * @param parent - Parent directory
+ * @param child - Candidate descendant
+ * @returns Whether child is strictly inside parent
+ */
+export function isSubpath(parent: string, child: string): boolean {
   const parentPath = path.resolve(parent);
   const childPath = path.resolve(child);
 
@@ -180,6 +183,8 @@ export async function ensureAuthenticated(): Promise<void> {
   }
 
   // Check for stored OAuth token
+  // Load authentication lazily so path utilities can be imported without the auth cycle.
+  const { getStoredToken } = await import("./token.js");
   const token = await getStoredToken();
   if (token) {
     return;
@@ -195,6 +200,7 @@ export async function ensureAuthenticated(): Promise<void> {
     process.exit(0);
   }
 
+  const { loginAction } = await import("../commands/login.js");
   await loginAction();
 }
 
@@ -275,6 +281,18 @@ export async function uploadFile(
   return true;
 }
 
+/**
+ * Syncs files while preserving subtrees owned by other watchers.
+ * @param store - Store instance
+ * @param fileSystem - File discovery and ignore rules
+ * @param storeId - Store identifier
+ * @param repoRoot - Directory to sync
+ * @param dryRun - Report changes without uploading or deleting
+ * @param onProgress - Progress callback
+ * @param config - File size and count limits
+ * @param excludedRoots - Subtree roots to leave untouched
+ * @returns Sync counts
+ */
 export async function initialSync(
   store: Store,
   fileSystem: FileSystem,
@@ -283,17 +301,41 @@ export async function initialSync(
   dryRun?: boolean,
   onProgress?: (info: InitialSyncProgress) => void,
   config?: MgrepConfig,
+  excludedRoots: string[] = [],
 ): Promise<InitialSyncResult> {
+  const canonicalExcludedRoots = excludedRoots.map((root) => {
+    try {
+      return fs.realpathSync(root);
+    } catch {
+      return path.resolve(root);
+    }
+  });
+  const isExcluded = (filePath: string): boolean => {
+    if (canonicalExcludedRoots.length === 0) return false;
+    let realPath = filePath;
+    try {
+      realPath = fs.realpathSync(filePath);
+    } catch {
+      // Deleted store files already use the canonical watcher root.
+    }
+    return canonicalExcludedRoots.some(
+      (root) => realPath === root || isSubpath(root, realPath),
+    );
+  };
   const storeMetadata = await listStoreFileMetadata(store, storeId, repoRoot);
   const allFiles = Array.from(fileSystem.getFiles(repoRoot));
   const repoFiles = allFiles.filter(
-    (filePath) => !fileSystem.isIgnored(filePath, repoRoot),
+    (filePath) =>
+      !isExcluded(filePath) && !fileSystem.isIgnored(filePath, repoRoot),
   );
 
   const repoFileSet = new Set(repoFiles);
 
   const filesToDelete = Array.from(storeMetadata.keys()).filter(
-    (filePath) => isSubpath(repoRoot, filePath) && !repoFileSet.has(filePath),
+    (filePath) =>
+      !isExcluded(filePath) &&
+      isSubpath(repoRoot, filePath) &&
+      !repoFileSet.has(filePath),
   );
 
   // Check files that potentially need uploading (new or modified)

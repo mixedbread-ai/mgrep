@@ -4,7 +4,17 @@ import * as path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
 
-const LOCAL_CONFIG_FILES = [".mgreprc.yaml", ".mgreprc.yml"] as const;
+/** Names of per-project configuration files. */
+export const LOCAL_CONFIG_FILES = [".mgreprc.yaml", ".mgreprc.yml"] as const;
+
+/**
+ * Checks whether a directory defines a project configuration boundary.
+ * @param dir - Directory to inspect
+ * @returns Whether either local configuration file exists
+ */
+export function hasLocalConfig(dir: string): boolean {
+  return LOCAL_CONFIG_FILES.some((file) => fs.existsSync(path.join(dir, file)));
+}
 const GLOBAL_CONFIG_DIR = ".config/mgrep";
 const GLOBAL_CONFIG_FILES = ["config.yaml", "config.yml"] as const;
 const ENV_PREFIX = "MGREP_";

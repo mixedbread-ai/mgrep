@@ -1,0 +1,20 @@
+{
+  "name": "Mixedbread-Grep",
+  "interface": {
+    "displayName": "Mixedbread"
+  },
+  "plugins": [
+    {
+      "name": "mgrep",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mgrep"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

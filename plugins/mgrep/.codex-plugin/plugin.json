@@ -1,0 +1,17 @@
+{
+  "name": "mgrep",
+  "version": "0.1.13",
+  "description": "Search your local files using Mixedbread",
+  "author": {
+    "name": "Joel Dierkes"
+  },
+  "skills": "./codex/skills/",
+  "mcpServers": "./codex/mcp.json",
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "mgrep",
+    "shortDescription": "Semantic search for your project files",
+    "developerName": "Mixedbread",
+    "category": "Developer Tools"
+  }
+}
