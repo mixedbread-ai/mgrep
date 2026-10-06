@@ -85,7 +85,6 @@ if __name__ == "__main__":
         stderr=open(f"/tmp/mgrep-watch-command-{payload.get('session_id')}.log", "w"),
     )
     debug_log(f"Started mgrep watch process: {process.pid}")
-    debug_log(f"All environment variables: {os.environ}")
     with open(pid_file, "w") as handle:
         handle.write(str(process.pid))
 
